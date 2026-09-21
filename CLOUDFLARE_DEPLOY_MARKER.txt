@@ -1,2 +1,0 @@
-India Lens Cloudflare deployment marker
-Current build must run: opennextjs-cloudflare build
