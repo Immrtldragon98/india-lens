@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {researchWithGrok} from "../../../lib/research/grok";
+export async function POST(req:Request){try{const b=await req.json();if(!b.question||typeof b.question!=="string")return NextResponse.json({error:"question is required"},{status:400});const answer=await researchWithGrok(b.question,b.mode==="analyst"?"analyst":"beginner");return NextResponse.json({answer});}catch(e:any){return NextResponse.json({error:e.message||"Research failed"},{status:500});}}

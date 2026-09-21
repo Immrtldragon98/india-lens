@@ -1,0 +1,4 @@
+import {db} from "./db";import {getSector as fallbackSector} from "./domain";
+export async function listSectors(){if(!process.env.DATABASE_URL)return [];const {rows}=await db.query("select slug,name,summary from sectors order by name");return rows;}
+export async function findSector(slug:string){if(!process.env.DATABASE_URL)return fallbackSector(slug);const {rows}=await db.query(`select s.slug,s.name,s.summary,coalesce(json_agg(i.name order by i.name) filter(where i.id is not null),'[]') industries from sectors s left join industries i on i.sector_id=s.id where s.slug=$1 group by s.id`,[slug]);return rows[0]??null;}
+export async function recentEvents(slug:string){if(!process.env.DATABASE_URL)return [];const {rows}=await db.query(`select e.title,e.summary,e.event_date,src.title source_title,src.url from events e join sectors s on s.id=e.sector_id left join sources src on src.id=e.source_id where s.slug=$1 order by e.event_date desc limit 8`,[slug]);return rows;}

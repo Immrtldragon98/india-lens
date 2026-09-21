@@ -1,0 +1,15 @@
+-- India Lens canonical relational model. Designed for PostgreSQL/Neon.
+create extension if not exists pgcrypto;
+create table if not exists sectors(id uuid primary key default gen_random_uuid(),slug text unique not null,name text not null,summary text,created_at timestamptz default now());
+create table if not exists industries(id uuid primary key default gen_random_uuid(),sector_id uuid references sectors(id) on delete cascade,slug text not null,name text not null,unique(sector_id,slug));
+create table if not exists companies(id uuid primary key default gen_random_uuid(),industry_id uuid references industries(id),name text not null,ticker text,exchange text,country text default 'India');
+create table if not exists indicators(id uuid primary key default gen_random_uuid(),code text unique not null,name text not null,unit text,frequency text,description text);
+create table if not exists observations(id uuid primary key default gen_random_uuid(),indicator_id uuid references indicators(id) on delete cascade,observed_at date not null,value numeric not null,source_id uuid,unique(indicator_id,observed_at));
+create table if not exists sources(id uuid primary key default gen_random_uuid(),title text not null,publisher text,url text not null,published_at date,source_type text,accessed_at timestamptz default now());
+alter table observations drop constraint if exists observations_source_id_fkey; alter table observations add constraint observations_source_id_fkey foreign key(source_id) references sources(id);
+create table if not exists events(id uuid primary key default gen_random_uuid(),title text not null,summary text,event_date date not null,scope text not null,sector_id uuid references sectors(id),industry_id uuid references industries(id),company_id uuid references companies(id),source_id uuid references sources(id));
+create table if not exists theses(id uuid primary key default gen_random_uuid(),title text not null,scope text not null,scope_ref text,status text default 'open',statement text not null,created_at timestamptz default now(),updated_at timestamptz default now());
+create table if not exists thesis_evidence(id uuid primary key default gen_random_uuid(),thesis_id uuid references theses(id) on delete cascade,source_id uuid references sources(id),stance text check(stance in ('supports','challenges','context')),note text);
+create table if not exists documents(id uuid primary key default gen_random_uuid(),source_id uuid references sources(id),title text not null,content_hash text,created_at timestamptz default now());
+create table if not exists document_chunks(id uuid primary key default gen_random_uuid(),document_id uuid references documents(id) on delete cascade,chunk_index int not null,content text not null,metadata jsonb default '{}'::jsonb,unique(document_id,chunk_index));
+create table if not exists research_runs(id uuid primary key default gen_random_uuid(),question text not null,mode text not null default 'beginner',model text,result jsonb,created_at timestamptz default now());

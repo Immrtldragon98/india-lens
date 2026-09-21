@@ -1,0 +1,1 @@
+import pg from "pg";import fs from "node:fs/promises";const url=process.env.DATABASE_URL;if(!url)throw new Error("DATABASE_URL is required");const pool=new pg.Pool({connectionString:url,ssl:{rejectUnauthorized:false}});for(const file of ["lib/db/schema.sql","lib/db/seed.sql"]){await pool.query(await fs.readFile(file,"utf8"));console.log("applied",file)}await pool.end();

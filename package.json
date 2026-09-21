@@ -1,0 +1,1 @@
+{"scripts":{"dev":"next dev","build":"next build","start":"next start","db:setup":"node scripts/setup-db.mjs"},"dependencies":{"@types/node":"latest","@types/react":"latest","@types/react-dom":"latest","next":"latest","pg":"^8.13.1","react":"latest","react-dom":"latest","typescript":"latest"},"devDependencies":{"@types/pg":"^8.11.10"},"name": "india-lens"}

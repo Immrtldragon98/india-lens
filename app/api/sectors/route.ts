@@ -1,0 +1,1 @@
+import {NextResponse} from "next/server";import {listSectors} from "../../../lib/repositories";import {sectors} from "../../../lib/domain";export async function GET(){const data=await listSectors();return NextResponse.json({sectors:data.length?data:sectors});}
