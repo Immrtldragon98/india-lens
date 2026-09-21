@@ -24,3 +24,7 @@ Evidence first; timestamp claims; prefer primary sources; expose counter-evidenc
 
 ## Roadmap
 V0.2 adds individual sector routes, structured indicators and source cards. V0.3 adds the research ingestion/API layer, watchlists and timeline. V1 adds AI-assisted research synthesis with citations.
+
+## Production deployment
+
+India Lens targets Cloudflare Workers through OpenNext. The production build command is `npm run build`, which runs `opennextjs-cloudflare build` and generates `.open-next/worker.js`; deployment is handled by `npx wrangler deploy`.
