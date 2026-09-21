@@ -1,2 +1,89 @@
-import {notFound} from "next/navigation";import Link from "next/link";import {findSector,recentEvents} from "../../../lib/repositories";import {getSector} from "../../../lib/domain";
-export default async function SectorPage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const base=getSector(slug);if(!base)return notFound();const sector=await findSector(slug)||base;const events=await recentEvents(slug);return <main><header><Link href="/" className="brand"><b>INDIA</b><span>LENS</span></Link><nav><Link href="/">India Thesis</Link><a href="#industries">Industries</a><a href="#events">Timeline</a></nav></header><section className="sectorHero"><p className="eyebrow">SECTOR RESEARCH / {base.name.toUpperCase()}</p><h1>{base.name}</h1><p>{base.summary}</p><div className="sectorMeta"><div><small>DRIVERS</small>{base.drivers.map(x=><span key={x}>{x}</span>)}</div><div><small>RISKS</small>{base.risks.map(x=><span key={x}>{x}</span>)}</div></div></section><section id="industries" className="section"><div className="sectionTitle"><p>INDUSTRY MAP</p><h2>What sits underneath {base.name}?</h2></div><div className="industryGrid">{(sector.industries||base.industries).map((x:string,i:number)=><article key={x}><b>0{i+1}</b><h3>{x}</h3><p>Track structure, demand, capacity, economics, companies and evidence.</p></article>)}</div></section><section id="events" className="section dark"><div className="sectionTitle"><p>EVIDENCE TIMELINE</p><h2>What changed?</h2><span>Events become useful only when connected to measurable sector effects.</span></div>{events.length?<div className="timeline">{events.map((e:any)=><article key={e.title+e.event_date}><time>{String(e.event_date)}</time><div><h3>{e.title}</h3><p>{e.summary}</p>{e.url&&<a href={e.url} target="_blank">Source →</a>}</div></article>)}</div>:<div className="emptyState"><strong>Research ingestion ready.</strong><p>No verified events have been added yet. We deliberately show an empty state rather than fabricated market data.</p></div>}</section></main>}
+import {notFound} from "next/navigation";
+import Link from "next/link";
+import {findSector,recentEvents} from "../../../lib/repositories";
+import {getSector} from "../../../lib/domain";
+import {getSectorMarket} from "../../../lib/market-data";
+
+const fmt=(n:number|null)=>n==null?"—":n.toLocaleString("en-IN",{maximumFractionDigits:2});
+const pct=(n:number|null)=>n==null?"—":`${n>=0?"+":""}${n.toFixed(2)}%`;
+
+export default async function SectorPage({params}:{params:Promise<{slug:string}>}){
+  const {slug}=await params;
+  const base=getSector(slug);
+  if(!base)return notFound();
+
+  const [sector,events,companies]=await Promise.all([
+    findSector(slug),
+    recentEvents(slug),
+    getSectorMarket(base.name)
+  ]);
+  const resolved=sector||base;
+  const available=companies.filter(x=>x.price!=null);
+  const leader=available[0]||null;
+  const avgDay=available.length?available.reduce((s,x)=>s+(x.dayPct??0),0)/available.length:null;
+
+  return <main>
+    <header>
+      <Link href="/" className="brand"><b>INDIA</b><span>LENS</span></Link>
+      <nav><Link href="/">India Thesis</Link><a href="#companies">Companies</a><a href="#industries">Industries</a><a href="#events">What happened</a></nav>
+      <Link href="/#market" className="headerCta">Back to market</Link>
+    </header>
+
+    <section className="sectorHero">
+      <p className="eyebrow">INDIA → SECTOR → COMPANY</p>
+      <h1>{base.name}</h1>
+      <p>{base.summary}</p>
+      <div className="sectorPulse">
+        <div><small>TRACKED COMPANIES</small><strong>{companies.length}</strong></div>
+        <div><small>SECTOR MOVE / 1D</small><strong className={(avgDay??0)>=0?"pos":"neg"}>{pct(avgDay)}</strong></div>
+        <div><small>LEADER TODAY</small><strong>{leader?.name||"—"}</strong></div>
+        <div><small>LEADER MOVE</small><strong className={(leader?.dayPct??0)>=0?"pos":"neg"}>{pct(leader?.dayPct??null)}</strong></div>
+      </div>
+      <div className="sectorMeta">
+        <div><small>WHY THIS SECTOR MATTERS TO INDIA</small><p className="sectorTheme">This sector is one piece of the India thesis. Study how its demand, capital, policy, imports, exports and productivity feed into the wider economy—not just whether share prices rose today.</p></div>
+        <div><small>CORE DRIVERS</small>{base.drivers.map(x=><span key={x}>{x}</span>)}</div>
+        <div><small>KEY RISKS</small>{base.risks.map(x=><span key={x}>{x}</span>)}</div>
+      </div>
+    </section>
+
+    <section id="companies" className="section companySection">
+      <div className="sectionTitle">
+        <p>01 / SECTOR COMPANIES</p>
+        <h2>Who represents {base.name} in the listed market?</h2>
+        <span>Use price movement to identify what changed, then open the business questions: revenue drivers, capacity, margins, balance sheet, policy exposure and value-chain position.</span>
+      </div>
+      <div className="companyTable">
+        <div className="companyRow companyHead"><span>Company</span><span>Industry</span><span>Price</span><span>1D</span><span>1W</span><span>1M</span></div>
+        {companies.map(c=><div className="companyRow" key={c.symbol}>
+          <span><b>{c.name}</b><small>{c.symbol}</small></span>
+          <span>{c.industry}</span>
+          <span>₹{fmt(c.price)}</span>
+          <span className={(c.dayPct??0)>=0?"pos":"neg"}>{pct(c.dayPct)}</span>
+          <span className={(c.weekPct??0)>=0?"pos":"neg"}>{pct(c.weekPct)}</span>
+          <span className={(c.monthPct??0)>=0?"pos":"neg"}>{pct(c.monthPct)}</span>
+        </div>)}
+      </div>
+      {!companies.length&&<div className="emptyState"><strong>Company universe not mapped yet.</strong><p>This sector exists in the India thesis, but listed-company coverage has not been added yet.</p></div>}
+    </section>
+
+    <section id="industries" className="section">
+      <div className="sectionTitle"><p>02 / INDUSTRY MAP</p><h2>What sits underneath {base.name}?</h2><span>Break the sector into its operating engines before comparing companies.</span></div>
+      <div className="industryGrid">{(resolved.industries||base.industries).map((x:string,i:number)=><article key={x}><b>{String(i+1).padStart(2,"0")}</b><h3>{x}</h3><p>Study demand, supply, capacity, pricing power, imports/exports, regulation and the listed companies exposed to this industry.</p></article>)}</div>
+    </section>
+
+    <section className="section framework">
+      <div className="sectionTitle"><p>03 / INDIA TRANSMISSION</p><h2>How does {base.name} change the India thesis?</h2><span>The core idea of India Lens is to treat the country like a company and every sector like an operating division.</span></div>
+      <div className="steps">
+        <div><b>1</b><h3>Demand</h3><p>Is domestic consumption, government spending or export demand strengthening or weakening?</p></div>
+        <div><b>2</b><h3>Capital</h3><p>Are companies investing, borrowing, raising capacity or improving productivity?</p></div>
+        <div><b>3</b><h3>External exposure</h3><p>Does the sector improve exports and self-reliance, or increase dependence on imports and foreign prices?</p></div>
+        <div><b>4</b><h3>Household effect</h3><p>Does it create jobs, affect inflation, raise income, improve access or change household spending?</p></div>
+      </div>
+    </section>
+
+    <section id="events" className="section dark">
+      <div className="sectionTitle"><p>04 / WHAT HAPPENED?</p><h2>Events that can change the thesis.</h2><span>Policy, prices, capacity, regulation, technology, demand and company actions should all connect back to measurable sector effects.</span></div>
+      {events.length?<div className="timeline">{events.map((e:any)=><article key={e.title+e.event_date}><time>{String(e.event_date)}</time><div><h3>{e.title}</h3><p>{e.summary}</p>{e.url&&<a href={e.url} target="_blank" rel="noreferrer">Source →</a>}</div></article>)}</div>:<div className="emptyState"><strong>No verified sector events yet.</strong><p>The structure is ready, but we will only show event data once it is backed by a source. The next ingestion step is to populate this timeline automatically from official and market feeds.</p></div>}
+    </section>
+  </main>
+}
