@@ -40,6 +40,12 @@ async function yahooSnapshot(c:MarketCompany):Promise<MarketSnapshot>{
   }
 }
 
+export async function getSectorMarket(sector:string){
+  const universe=marketCompanies.filter(x=>x.sector===sector);
+  const snapshots=await Promise.all(universe.map(yahooSnapshot));
+  return snapshots.sort((a,b)=>(b.dayPct??-999)-(a.dayPct??-999));
+}
+
 export async function getMarketOverview(){
   const snapshots=await Promise.all(marketCompanies.map(yahooSnapshot));
   const available=snapshots.filter(x=>x.price!=null);
