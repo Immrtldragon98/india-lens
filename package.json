@@ -1,1 +1,27 @@
-{"scripts":{"dev":"next dev","build":"next build","start":"next start","db:setup":"node scripts/setup-db.mjs"},"dependencies":{"@types/node":"latest","@types/react":"latest","@types/react-dom":"latest","next":"latest","pg":"^8.13.1","react":"latest","react-dom":"latest","typescript":"latest"},"devDependencies":{"@types/pg":"^8.11.10"},"name": "india-lens"}
+{
+  "name": "india-lens",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "db:setup": "node scripts/setup-db.mjs"
+  },
+  "dependencies": {
+    "next": "16.3.5",
+    "pg": "^8.23.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "latest",
+    "wrangler": "latest",
+    "typescript": "7.0.2",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/pg": "8.23.1"
+  }
+}
