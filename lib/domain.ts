@@ -9,3 +9,5 @@ export const sectors:Sector[]=[
 {slug:"healthcare",name:"Healthcare",summary:"Pharma, hospitals, diagnostics and devices",industries:["Pharma","Hospitals","Diagnostics","Devices"],drivers:["Income","Insurance","Export demand"],risks:["Regulation","Pricing","R&D execution"]},
 {slug:"agriculture",name:"Agriculture",summary:"Inputs, food processing, rural economy and logistics",industries:["Inputs","Food Processing","Agri Logistics","Rural Finance"],drivers:["Productivity","Rural income","Formal supply chains"],risks:["Weather","Commodity prices","Policy"]}
 ];
+
+export function getSector(slug:string){return sectors.find((sector)=>sector.slug===slug);}
