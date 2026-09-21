@@ -27,4 +27,4 @@ V0.2 adds individual sector routes, structured indicators and source cards. V0.3
 
 ## Production deployment
 
-India Lens targets Cloudflare Workers through OpenNext. The production build command is `npm run build`, which runs `opennextjs-cloudflare build` and generates `.open-next/worker.js`; deployment is handled by `npx wrangler deploy`.
+India Lens is deployed as a standard Next.js web service. Production uses Render for the app, Neon for PostgreSQL, and xAI/Grok for research synthesis.
