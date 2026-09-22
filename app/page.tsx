@@ -14,8 +14,8 @@ export default function Home(){
 return <main>
 <header>
   <div className="brand"><b>INDIA</b><span>LENS</span></div>
-  <nav><a href="#market">Markets</a><a href="#thesis">Thesis</a><a href="#sectors">Sectors</a><a href="#framework">Framework</a><Link href="/market-lens">AI Agent</Link></nav>
-  <Link className="headerCta" href="/market-lens">Open AI agent</Link>
+  <nav><Link href="/economy">Economy Lab</Link><a href="#market">Markets</a><a href="#sectors">Sectors</a><Link href="/market-lens">AI Agent</Link></nav>
+  <Link className="headerCta" href="/economy">Open Economy Lab</Link>
 </header>
 
 <section className="hero">
