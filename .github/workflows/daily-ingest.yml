@@ -1,0 +1,23 @@
+name: Daily data refresh
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check production health
+        run: curl --fail --retry 3 --retry-delay 10 --max-time 30 https://india-lens-web.onrender.com/api/health
+      - name: Refresh economy snapshot
+        run: curl --fail --retry 3 --retry-delay 10 --max-time 90 https://india-lens-web.onrender.com/api/economy > /dev/null
+      - name: Refresh free-data cache
+        run: curl --fail --retry 3 --retry-delay 10 --max-time 90 https://india-lens-web.onrender.com/api/free-data > /dev/null
+      - name: Warm market overview
+        run: curl --fail --retry 3 --retry-delay 10 --max-time 90 https://india-lens-web.onrender.com/api/market/overview > /dev/null
