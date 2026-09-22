@@ -274,7 +274,7 @@ export default function EconomyDashboard(){
       <div className="transmissionRule"><b>Research rule</b><span>Mechanism → measurable variable → historical test → counter-evidence → company exposure.</span></div>
       <div className="exposureHeader"><div><small>SECTOR → COMPANY</small><h3>{exposureCase.title}</h3></div><span>Select an exposure to see what should actually be measured.</span></div>
       <div className="exposureGrid">{exposureCase.sectors.map((s:any)=><button key={s.name} onClick={()=>{setSelectedExposure(s);updateLearning(["macro","companies","fundamentals"],4)}} className={selectedExposure?.name===s.name?"on":""}><small>{s.bias}</small><b>{s.name}</b><span>{s.companies.join(" · ")}</span></button>)}</div>
-      {selectedExposure&&<div className="exposureDetail"><div><small>MECHANISM</small><h3>{selectedExposure.name}</h3><p>{selectedExposure.why}</p></div><div><small>COMPANY EXAMPLES — RESEARCH, NOT RECOMMENDATIONS</small><p>{selectedExposure.companies.join(" · ")}</p></div><div><small>VERIFY IN FUNDAMENTALS</small><p>{selectedExposure.watch}</p></div><a href="/market-lens">Open Market Lens →</a></div>}
+      {selectedExposure&&<div className="exposureDetail"><div><small>MECHANISM</small><h3>{selectedExposure.name}</h3><p>{selectedExposure.why}</p></div><div><small>COMPANY EXAMPLES — RESEARCH, NOT RECOMMENDATIONS</small><p>{selectedExposure.companies.join(" · ")}</p></div><div><small>WHAT WOULD PROVE IT?</small><p>{selectedExposure.watch}</p></div><a href={transmission==="crude"?"/sector/energy":transmission==="rates"?"/sector/financials":"/sector/technology"}>Understand the sector →</a></div>}
     </section>
 
     <section className="economySection statsLab">
