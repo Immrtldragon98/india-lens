@@ -33,7 +33,7 @@ async function amfiSnapshot(){
 }
 
 export async function getFreeDataHub(){
-  const [worldBank,amfi,nseUniverse,rbiOfficial,officialMacroCatalogue:officialMacroCatalogue(),rbiOfficial]=await Promise.all([Promise.all(wb.map(worldBankIndicator)),amfiSnapshot(),getNseUniverseStats(),getRbiOfficialPulse()]);
+  const [worldBank,amfi,nseUniverse,rbiOfficial]=await Promise.all([Promise.all(wb.map(worldBankIndicator)),amfiSnapshot(),getNseUniverseStats(),getRbiOfficialPulse()]);
   return {
     generatedAt:new Date().toISOString(),
     worldBank,amfi,nseUniverse,
