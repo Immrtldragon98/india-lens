@@ -3,10 +3,14 @@ import {limitedResponse,rateLimit,readJsonLimited,safeError,fetchWithTimeout} fr
 
 function fallbackAnswer(question:string,analysis:any){
   const q=question.toLowerCase();
-  const t=analysis?.technical||{}, m=analysis?.metrics||{}, s=analysis?.scenario||{};
+  const t=analysis?.technical||{}, m=analysis?.metrics||{}, s=analysis?.scenario||{}, g=analysis?.gaja||{};
   if(q.includes("why")&&(q.includes("up")||q.includes("down")||q.includes("price")||q.includes("predict"))){
     return analysis?.predictionExplanation?.summary||"Market Lens combines business strength with price trend, momentum and volatility, then lowers confidence when they disagree.";
   }
+  if(q.includes("what")&&(q.includes("company")||q.includes("sell")||q.includes("business")))return analysis?.simpleBusiness||analysis?.company?.name+" is the company being studied. Start by identifying who pays it, what they pay for, and why they choose it.";
+  if(q.includes("2×")||q.includes("2x")||q.includes("bigger")||q.includes("grow"))return g?.steps?.[1]?.plain||"Ask what can make revenue and profit materially larger: customers, price, capacity, new products, geography or acquisitions. Then demand evidence for the specific driver.";
+  if(q.includes("who pays")||q.includes("customer"))return "That is a core GAJA question. The current automated dataset may not identify customer segments reliably. Do not guess: use the business description and company disclosures to identify the paying customer, purchase reason and revenue model.";
+  if(q.includes("gaja"))return "GAJA starts with intuition, not ratios: Get the business → Ask what can improve → Judge the quality of growth → At what price? Then use people, moat, risk and valuation evidence to challenge the story. Technical analysis comes afterward as an independent market check.";
   if(q.includes("rsi"))return `RSI is a momentum gauge from 0 to 100. Here it is ${t.rsi14??"unavailable"}. It does not predict price by itself; it helps show whether recent buying or selling has become stretched.`;
   if(q.includes("pe")||q.includes("p/e"))return `P/E means price-to-earnings. It asks how much investors are paying for each rupee of earnings. The current forward P/E in this analysis is ${m.forwardPE??"unavailable"}. A high number can reflect strong expectations, but also higher valuation risk.`;
   if(q.includes("roe"))return `ROE means return on equity: how efficiently the company uses shareholder capital to make profit. In this analysis it is ${m.roePct??"unavailable"}%. It is best compared with the company's own history and similar businesses.`;
@@ -35,7 +39,7 @@ export async function POST(req:Request){
       model:process.env.XAI_MODEL||"grok-4.6",
       store:false,
       input:[
-        {role:"system",content:`You are Market Lens Tutor. Teach stock-market ideas simply and interactively. User level: ${level}. Answer only from the supplied analysis. Explain jargon in plain language, use one small analogy when useful, and never give a buy/sell instruction. If the evidence is mixed, say so. Keep the answer under 180 words unless the user asks for depth.`},
+        {role:"system",content:`You are Market Lens, a GAJA-guided research partner, not a generic fundamental-analysis agent. Start from business intuition: what the company does, who pays and why, what can make it bigger, management/capital allocation, growth quality, moat, risks and price. Only introduce ratios when they answer one of those questions. Technical analysis is an independent verification step after the business hypothesis, never the starting point. Teach stock-market ideas simply and interactively. User level: ${level}. Answer only from the supplied analysis. Explain jargon in plain language, use one small analogy when useful, and never give a buy/sell instruction. If the evidence is mixed, say so. Keep the answer under 180 words unless the user asks for depth.`},
         {role:"user",content:JSON.stringify({question,analysis})}
       ]
     })});
