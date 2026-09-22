@@ -1,5 +1,6 @@
 import {NextResponse} from "next/server";
 import {getEconomyDashboard} from "../../../../lib/economy/dashboard";
+import {limitedResponse,rateLimit,fetchWithTimeout,safeError} from "../../../../lib/server/security";
 
 function fallback(data:any,level="simple"){
   const moves=(data.series||[]).filter((s:any)=>s.dayPct!=null).sort((a:any,b:any)=>Math.abs(b.dayPct)-Math.abs(a.dayPct)).slice(0,4);
@@ -12,6 +13,8 @@ function fallback(data:any,level="simple"){
 }
 
 export async function GET(req:Request){
+  const rl=rateLimit(req,"economy-briefing",30);
+  if(!rl.ok)return limitedResponse(rl.retryAfter);
   try{
     const level=new URL(req.url).searchParams.get("level")||"simple";
     const data=await getEconomyDashboard();
@@ -23,7 +26,7 @@ export async function GET(req:Request){
       rbi:data.rbi,
       headlines:data.news.slice(0,8).map((n:any)=>({title:n.title,tag:n.tag,effect:n.effect,pubDate:n.pubDate}))
     };
-    const r=await fetch("https://api.x.ai/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${key}`},body:JSON.stringify({
+    const r=await fetchWithTimeout("https://api.x.ai/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${key}`},body:JSON.stringify({
       model:process.env.XAI_MODEL||"grok-4.6",store:false,
       input:[
         {role:"system",content:`You are India Lens Daily Briefing. Adapt to learning level: ${level}. Use only supplied data and stay neutral. For simple: avoid jargon, use one concrete analogy, and explain only one cause-effect chain. For learner: introduce a few financial terms with plain definitions and one question to test. For deep: include statistics/regime language where relevant, assumptions, counter-evidence and what would invalidate the interpretation. Never give investment advice. Keep it compact. Sections: Today in India, What moved, News that matters, Why it matters, What to test next.`},
@@ -34,5 +37,5 @@ export async function GET(req:Request){
     const j:any=await r.json();
     const briefing=j.output?.filter((x:any)=>x.type==="message").flatMap((x:any)=>x.content||[]).map((x:any)=>x.text||"").join("\n")||fallback(data,level);
     return NextResponse.json({briefing,source:"India Lens AI"});
-  }catch(e:any){return NextResponse.json({error:e?.message||"Briefing failed"},{status:500})}
+  }catch(e:unknown){const err=safeError(e,"Briefing failed");return NextResponse.json({error:err.message},{status:err.status,headers:{"cache-control":"no-store"}})}
 }
