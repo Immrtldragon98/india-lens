@@ -137,6 +137,26 @@ export async function analyzeCompany(symbol:string,mode:"beginner"|"analyst"="be
     ? evidence.businessSummary.split(".").slice(0,2).join(".")+"."
     : `${evidence.company.name} operates in ${evidence.company.industry} within India's ${evidence.company.sector} sector.`;
 
+  const m:any=evidence.metrics;
+  const gaja={
+    goldenRule:"Never confuse a good company with a good investment.",
+    steps:[
+      {key:"G",title:"Get the business",question:"What exactly does this company do, who pays it, and why?",plain:simpleBusiness},
+      {key:"A",title:"Ask what makes it better",question:"What can make this business bigger or stronger?",plain:m.revenueGrowthPct!=null?"Sales are changing at about "+round(m.revenueGrowthPct)+"%. Now ask whether growth comes from customers, pricing, capacity or acquisitions.":"Growth data is incomplete, so do not invent the growth story."},
+      {key:"J",title:"Judge the quality",question:"Does growth turn into durable profit and shareholder value?",plain:[m.profitMarginPct!=null?"Profit margin: "+round(m.profitMarginPct)+"%.":null,m.roePct!=null?"ROE: "+round(m.roePct)+"%.":null,m.debtToEquity!=null?"Debt/equity: "+round(m.debtToEquity)+".":null].filter(Boolean).join(" ")||"Quality evidence is incomplete."},
+      {key:"A2",title:"At what price?",question:"Can a good company still be a poor investment at today's price?",plain:m.forwardPE!=null?"Forward P/E is about "+round(m.forwardPE)+"x. Compare price with growth quality, history and peers before forming a valuation view.":"Valuation evidence is incomplete."}
+    ],
+    checklist:[
+      {title:"People",prompt:"Who runs it, how are they allocating capital, and what evidence shows execution?"},
+      {title:"Business",prompt:"Who pays, why do they pay, and what drives revenue and profit?"},
+      {title:"Growth quality",prompt:"Is growth organic, acquisition-led, cyclical or price-led?"},
+      {title:"Moat",prompt:"Why can competitors not easily take customers or margins?"},
+      {title:"Risk",prompt:"What can permanently damage the business or thesis?"},
+      {title:"Valuation",prompt:"What expectations are already embedded in today's price?"}
+    ],
+    technicalRole:"Technical analysis is the independent market check after the business hypothesis. It can support or challenge an assumption; it does not replace understanding the company."
+  };
+
   const payload={
     company:evidence.company,
     simpleBusiness,
@@ -163,6 +183,7 @@ export async function analyzeCompany(symbol:string,mode:"beginner"|"analyst"="be
     scenario,
     predictionExplanation,
     learningCards,
+    gaja,
     calibration,
     aiExplanation,
     source:evidence.source,
