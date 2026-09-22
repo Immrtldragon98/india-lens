@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {limitedResponse,rateLimit,readJsonLimited,safeError,fetchWithTimeout} from "../../../../lib/server/security";
 
 function fallbackAnswer(question:string,analysis:any){
   const q=question.toLowerCase();
@@ -16,17 +17,21 @@ function fallbackAnswer(question:string,analysis:any){
 }
 
 export async function POST(req:Request){
+  const rl=rateLimit(req,"market-lens-tutor",30);
+  if(!rl.ok)return limitedResponse(rl.retryAfter);
   try{
-    const body=await req.json();
+    const body=await readJsonLimited(req,90_000);
     const question=String(body?.question||"").trim();
     const analysis=body?.analysis;
     const level=String(body?.level||"starter");
     if(!question)return NextResponse.json({error:"question is required"},{status:400});
+    if(question.length>800)return NextResponse.json({error:"Question is too long."},{status:400});
+    if(JSON.stringify(analysis||{}).length>75_000)return NextResponse.json({error:"Analysis payload is too large."},{status:413});
 
     const key=process.env.XAI_API_KEY;
     if(!key)return NextResponse.json({answer:fallbackAnswer(question,analysis),source:"built-in tutor"});
 
-    const r=await fetch("https://api.x.ai/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${key}`},body:JSON.stringify({
+    const r=await fetchWithTimeout("https://api.x.ai/v1/responses",{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${key}`},body:JSON.stringify({
       model:process.env.XAI_MODEL||"grok-4.6",
       store:false,
       input:[
@@ -38,5 +43,5 @@ export async function POST(req:Request){
     const data:any=await r.json();
     const answer=data.output?.filter((x:any)=>x.type==="message").flatMap((x:any)=>x.content||[]).map((x:any)=>x.text||"").join("\n")||fallbackAnswer(question,analysis);
     return NextResponse.json({answer,source:"Market Lens AI"});
-  }catch(e:any){return NextResponse.json({error:e?.message||"Tutor failed"},{status:500})}
+  }catch(e:unknown){const err=safeError(e,"Tutor failed");return NextResponse.json({error:err.message},{status:err.status,headers:{"cache-control":"no-store"}})}
 }
