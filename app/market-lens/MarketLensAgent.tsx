@@ -73,7 +73,7 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
     const text=(q||question).trim();if(!text||!data)return;
     setQuestion(text);setAsking(true);setAnswer("");
     try{
-      const compact={company:data.company,predictionExplanation:data.predictionExplanation,fundamental:data.fundamental,metrics:data.metrics,technical:data.technical,scenario:data.scenario,assumptions:data.assumptions};
+      const compact={company:data.company,simpleBusiness:data.simpleBusiness,gaja:data.gaja,predictionExplanation:data.predictionExplanation,fundamental:data.fundamental,metrics:data.metrics,technical:data.technical,scenario:data.scenario,assumptions:data.assumptions};
       const r=await fetch("/api/market-lens/ask",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question:text,analysis:compact,level})});
       const j=await r.json();if(!r.ok)throw new Error(j.error||"Tutor failed");setAnswer(j.answer);updateLearning(["fundamentals","companies"],3);
     }catch(e:any){setAnswer(e?.message||"Tutor unavailable")}finally{setAsking(false)}
