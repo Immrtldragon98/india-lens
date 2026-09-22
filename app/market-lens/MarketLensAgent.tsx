@@ -39,7 +39,7 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
       const base=raw?JSON.parse(raw):{level:"simple",auto:true,interactions:0,domains:{macro:10,markets:10,companies:10,fundamentals:5,technical:0,statistics:0,bonds:0,currency:5}};
       const next={...base,interactions:(base.interactions||0)+1,domains:{...base.domains}};
       for(const d of domains)next.domains[d]=Math.min(100,(next.domains[d]||0)+amount);
-      const avg=Object.values(next.domains).reduce((a:any,b:any)=>a+Number(b),0)/Object.values(next.domains).length;
+      const vals=Object.values(next.domains) as number[];const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
       if(next.auto)next.level=next.interactions>=20&&avg>=45?"deep":next.interactions>=6&&avg>=20?"learner":"simple";
       localStorage.setItem("indiaLensLearningProfile",JSON.stringify(next));
       window.dispatchEvent(new CustomEvent("india-lens-learning-change",{detail:next}));
