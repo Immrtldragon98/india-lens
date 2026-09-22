@@ -15,6 +15,11 @@ export default function EconomyDashboard(){
   const [x,setX]=useState("usdinr");
   const [y,setY]=useState("nifty50");
   const [error,setError]=useState("");
+  const [briefing,setBriefing]=useState("");
+  const [briefingSource,setBriefingSource]=useState("");
+  const [briefingLoading,setBriefingLoading]=useState(false);
+  const [raceWindow,setRaceWindow]=useState(90);
+  const [replay,setReplay]=useState("crude");
 
   async function load(){
     setError("");
@@ -24,10 +29,26 @@ export default function EconomyDashboard(){
     }catch(e:any){setError(e?.message||"Economy feed unavailable")}
   }
 
-  useEffect(()=>{load();const id=setInterval(load,900000);return()=>clearInterval(id)},[]);
+  async function loadBriefing(){
+    setBriefingLoading(true);
+    try{const r=await fetch("/api/economy/briefing",{cache:"no-store"});const j=await r.json();if(r.ok){setBriefing(j.briefing||"");setBriefingSource(j.source||"")}}
+    finally{setBriefingLoading(false)}
+  }
+
+  useEffect(()=>{load();loadBriefing();const id=setInterval(()=>{load();loadBriefing()},900000);return()=>clearInterval(id)},[]);
   const xs=data?.series.find(s=>s.code===x),ys=data?.series.find(s=>s.code===y);
   const corr=useMemo(()=>corrFor(data,x,y),[data,x,y]);
   const corrText=corr==null?"Not enough matched observations":Math.abs(corr)>=.7?"Strong relationship":Math.abs(corr)>=.4?"Moderate relationship":Math.abs(corr)>=.2?"Weak relationship":"Very weak relationship";
+  const raceSeries=useMemo(()=>data?.series.map(s=>{
+    const h=s.history.slice(-raceWindow);const base=h[0]?.v;
+    return {name:s.name,code:s.code,points:base?h.map(p=>({t:p.t,v:(p.v/base)*100})):[],end:base&&h.at(-1)?(h.at(-1)!.v/base)*100:null};
+  }).filter((x:any)=>x.points.length>1)||[],[data,raceWindow]);
+  const replayMap:any={
+    crude:{title:"Crude oil shock",event:"Oil rises sharply",expect:["India imports much of its crude, so the import bill can rise.","A larger import bill can pressure the rupee.","Fuel and logistics costs can feed inflation.","Rate expectations and company margins can react."],check:["USD/INR","India VIX","NIFTY 50","Brent crude"]},
+    rupee:{title:"Currency shock",event:"The rupee weakens",expect:["Imports become more expensive in rupee terms.","Some exporters may gain translation benefits.","Inflation risk can rise depending on commodity prices.","Foreign flows and RBI actions become more important."],check:["USD/INR","Brent crude","NIFTY 50","Gold"]},
+    rates:{title:"Rate shock",event:"Interest rates rise",expect:["Loans and refinancing become more expensive.","Bond yields and discount rates can move higher.","Rate-sensitive demand can cool.","Banks, housing, autos and leveraged firms can react differently."],check:["NIFTY Bank","NIFTY 50","India VIX","USD/INR"]}
+  };
+  const replayCase=replayMap[replay];
 
   return <main>
     <section className="economyHero">
@@ -53,6 +74,31 @@ export default function EconomyDashboard(){
       <div className="releaseGrid">
         <article className="rbiCard"><small>RBI QUICK PULSE</small><h3>Policy & prices</h3><div><span>Repo rate</span><b>{data?.rbi?.repoRate??"—"}{data?.rbi?.repoRate!=null?"%":""}</b></div><div><span>CPI</span><b>{data?.rbi?.cpi??"—"}{data?.rbi?.cpi!=null?"%":""}</b></div><div><span>WPI</span><b>{data?.rbi?.wpi??"—"}{data?.rbi?.wpi!=null?"%":""}</b></div><p>Source: RBI DBIE. If RBI changes page formatting, India Lens shows blanks rather than inventing values.</p></article>
         {data?.releaseBoard.map((r:any)=><article key={r.name}><small>{r.cadence}</small><h3>{r.name}</h3><p>{r.why}</p><span>{r.source}</span></article>)}
+      </div>
+    </section>
+
+    <section className="economySection briefingLab">
+      <div className="economyTitle"><p>00 / TODAY IN INDIA</p><h2>Your daily economy story.</h2><span>Market data + economy headlines are condensed into one beginner-friendly briefing. It refreshes through the day while slower official indicators keep their own release cadence.</span></div>
+      <div className="briefingCard">
+        <div className="briefingTop"><span>{briefingSource||"India Lens"}</span><button onClick={loadBriefing} disabled={briefingLoading}>{briefingLoading?"Refreshing…":"Refresh briefing"}</button></div>
+        <pre>{briefing||"Building today's story…"}</pre>
+      </div>
+    </section>
+
+    <section className="economySection raceLab">
+      <div className="economyTitle"><p>03A / RACE TO 100</p><h2>Put different markets on the same starting line.</h2><span>Every series starts at 100. This removes unit differences and lets you compare relative movement directly.</span></div>
+      <div className="raceControls">{[30,90,180,252].map(n=><button key={n} onClick={()=>setRaceWindow(n)} className={raceWindow===n?"on":""}>{n===252?"1Y":n+"D"}</button>)}</div>
+      <div className="raceGrid">{raceSeries.sort((a:any,b:any)=>(b.end??0)-(a.end??0)).map((s:any,i:number)=><article key={s.code}><span>#{i+1}</span><h3>{s.name}</h3><strong>{s.end==null?"—":s.end.toFixed(1)}</strong><p>{s.end==null?"":(s.end>=100?"+":"")+((s.end-100).toFixed(1))+"% from start"}</p><div className="sparkline">{s.points.filter((_:any,j:number)=>j%Math.max(1,Math.floor(s.points.length/24))===0).map((p:any,j:number)=><i key={j} style={{height:Math.max(3,Math.min(42,18+(p.v-100)*1.5))}} title={p.v.toFixed(1)}/>)}</div></article>)}</div>
+      <p className="mathHint">Try 30D vs 1Y. A relationship that looks strong over one window may disappear over another—that is a regime change clue.</p>
+    </section>
+
+    <section className="economySection eventReplay">
+      <div className="economyTitle"><p>04A / EVENT REPLAY</p><h2>Make a prediction before looking at the reaction.</h2><span>This trains causal thinking. The app gives the expected transmission chain, then you check the real market variables.</span></div>
+      <div className="replayTabs">{Object.entries(replayMap).map(([k,v]:any)=><button key={k} className={replay===k?"on":""} onClick={()=>setReplay(k)}>{v.title}</button>)}</div>
+      <div className="replayCard">
+        <div><small>EVENT</small><h3>{replayCase.event}</h3><p>Before opening the chain, write down what you think should happen to currency, stocks, inflation and bonds.</p></div>
+        <div><small>EXPECTED TRANSMISSION</small>{replayCase.expect.map((x:string,i:number)=><p key={i}><b>{i+1}</b>{x}</p>)}</div>
+        <div><small>CHECK THESE VARIABLES</small>{replayCase.check.map((x:string)=><span key={x}>{x}</span>)}</div>
       </div>
     </section>
 
