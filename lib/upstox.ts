@@ -4,14 +4,19 @@ export type UpstoxInstrument={
 };
 
 const NSE_FILE="https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz";
+const globalCache=globalThis as unknown as {nseUniverseCache?:{at:number;rows:UpstoxInstrument[]}};
 
 export async function getNseEquityUniverse():Promise<UpstoxInstrument[]>{
+  const cached=globalCache.nseUniverseCache;
+  if(cached&&Date.now()-cached.at<21_600_000)return cached.rows;
   try{
-    const r=await fetch(NSE_FILE,{next:{revalidate:21600}});
+    const r=await fetch(NSE_FILE,{cache:"no-store",headers:{"User-Agent":"Mozilla/5.0 IndiaLens/1.0"}});
     if(!r.ok)throw new Error("instrument master "+r.status);
     const rows:any[]=await r.json();
-    return rows.filter(x=>x.segment==="NSE_EQ"&&x.instrument_type==="EQ"&&x.trading_symbol&&x.instrument_key);
-  }catch{return[]}
+    const filtered=rows.filter(x=>x.segment==="NSE_EQ"&&x.instrument_type==="EQ"&&x.trading_symbol&&x.instrument_key);
+    globalCache.nseUniverseCache={at:Date.now(),rows:filtered};
+    return filtered;
+  }catch{return cached?.rows||[]}
 }
 
 export async function searchNseEquities(query:string,limit=20){
