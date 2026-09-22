@@ -213,7 +213,7 @@ export default function EconomyDashboard(){
           <h4>{j.x} {j.sign==="same"?"moves with":"moves opposite to"} {j.y}</h4>
           <p>Correlation {j.r.toFixed(3)} · R² {j.fit?.r2?.toFixed(3)??"—"} · {j.count} observations</p>
         </article>)}</div>
-      </div>
+      </div>}
     </section>
 
     <section className="economySection eventReplay">
