@@ -86,7 +86,8 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
     <section className="agentIntro">
       <p className="eyebrow">MARKET LENS / LEARN WHILE YOU ANALYSE</p>
       <h1>Stock market,<br/><em>without the alien language.</em></h1>
-      <p>Start with what the company actually does. Then learn the important numbers one by one. Market Lens explains every assumption, checks it against price behaviour, and tells you why its view changed.</p>
+      <p>This is not a fundamental-analysis scorecard. GAJA starts with your intuition: understand what you own, ask how it can grow, judge whether that growth is good, then ask whether today's price makes sense. Only after that does price behaviour challenge the hypothesis.</p>
+      <div className="gajaStrip"><span><b>G</b> Get the business</span><i>→</i><span><b>A</b> Ask what improves</span><i>→</i><span><b>J</b> Judge quality</span><i>→</i><span><b>A</b> At what price?</span></div>
     </section>
 
     <section className="agentPanel">
@@ -109,6 +110,12 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
     {loading&&<div className="agentLoading">1. Understanding the business → 2. Checking fundamentals → 3. Making assumptions → 4. Verifying with price behaviour → 5. Correcting the view…</div>}
 
     {data&&<div className="agentResults">
+      <section className="gajaJourney">
+        <div className="agentBlockTitle"><p>GAJA / START HERE</p><h3>Understand the stock before analysing the stock.</h3></div>
+        <blockquote>{data.gaja?.goldenRule}</blockquote>
+        <div className="gajaSteps">{data.gaja?.steps?.map((s:any,i:number)=><button key={s.key} onClick={()=>ask(s.question)}><em>{i+1}</em><small>{s.key.replace("2","")}</small><h4>{s.title}</h4><b>{s.question}</b><p>{s.plain}</p><span>Ask Market Lens about this →</span></button>)}</div>
+        <details className="gajaChecklist"><summary>Open the full GAJA thinking checklist</summary><div>{data.gaja?.checklist?.map((x:any)=><article key={x.title}><b>{x.title}</b><p>{x.prompt}</p></article>)}</div></details>
+      </section>
       <section className="agentHeroCard">
         <div><p className="eyebrow">{data.company.sector} / {data.company.industry}</p><h2>{data.company.name}</h2><p>{data.simpleBusiness}</p></div>
         <div className="agentVerdict"><small>WHAT THE EVIDENCE SAYS</small><strong>{data.scenario.direction==="up"?"Leans upward":data.scenario.direction==="down"?"Leans downward":"Mixed"}</strong><span>{data.scenario.confidence}% confidence · {data.verification.verdict.toLowerCase()}</span></div>
@@ -125,14 +132,14 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
 
       <section className="agentGrid two">
         <article>
-          <p className="agentKicker">PART 1 / BUSINESS FIRST</p>
-          <h3>Are the fundamentals helping?</h3>
+          <p className="agentKicker">GAJA EVIDENCE / NUMBERS SECOND</p>
+          <h3>Do the numbers support the business story?</h3>
           <div className="stance">{data.fundamental.stance}</div>
           <ul>{data.fundamental.reasons.slice(0,level==="starter"?3:10).map((x:string,i:number)=><li key={i}>{x}</li>)}</ul>
         </article>
         <article>
-          <p className="agentKicker">PART 2 / MARKET CHECK</p>
-          <h3>Does the price agree?</h3>
+          <p className="agentKicker">INDEPENDENT CHECK / ONLY AFTER GAJA</p>
+          <h3>Does the market challenge our assumptions?</h3>
           <div className="stance">{String(data.technical.trend).replaceAll("_"," ")}</div>
           <div className="miniMetrics">
             {metric("Price",data.technical.price)}
@@ -146,7 +153,7 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
       </section>
 
       <section className="agentBlock">
-        <div className="agentBlockTitle"><p>LEARN THE FUNDAMENTALS</p><h3>Every number translated into normal language.</h3></div>
+        <div className="agentBlockTitle"><p>NUMBERS THAT ANSWER GAJA</p><h3>Use metrics to answer a question — never collect ratios for their own sake.</h3></div>
         <div className="learnGrid">{visibleCards.map((c:any)=><article key={c.term}><small>{c.term}</small><h4>{c.simple}</h4><strong>{c.value==null?"—":Number(c.value).toLocaleString("en-IN",{maximumFractionDigits:2})}{c.value==null?"":c.unit}</strong><p>{c.why}</p></article>)}</div>
       </section>
 
@@ -169,9 +176,9 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
       </section>
 
       <section className="agentBlock tutorBlock">
-        <div className="agentBlockTitle"><p>ASK MARKET LENS</p><h3>Question anything you do not understand.</h3></div>
+        <div className="agentBlockTitle"><p>TALK THROUGH THE COMPANY</p><h3>Use Market Lens like a patient research partner.</h3></div>
         <div className="quickQuestions">
-          {["Why do you think price may move this way?","What is P/E in simple words?","What is RSI?","What can make this thesis wrong?"].map(q=><button key={q} onClick={()=>ask(q)}>{q}</button>)}
+          {["Explain what this company actually sells","Who pays this company and why?","What can make this business 2× bigger?","What can kill this thesis?"].map(q=><button key={q} onClick={()=>ask(q)}>{q}</button>)}
         </div>
         <div className="tutorInput"><input value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>e.key==="Enter"&&ask()} placeholder="Ask: Why does debt matter? What is support? Why is this risky?"/><button onClick={()=>ask()} disabled={asking}>{asking?"Thinking…":"Ask →"}</button></div>
         {answer&&<div className="tutorAnswer"><b>Market Lens explains:</b><p>{answer}</p></div>}
