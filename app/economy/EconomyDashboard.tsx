@@ -84,6 +84,7 @@ export default function EconomyDashboard(){
   const [mathAgent,setMathAgent]=useState<any>(null);
   const [mathAgentLoading,setMathAgentLoading]=useState(false);
   const [transmission,setTransmission]=useState("crude");
+  const [selectedExposure,setSelectedExposure]=useState<any>(null);
 
   async function load(){
     setError("");
@@ -143,6 +144,26 @@ export default function EconomyDashboard(){
     rates:{title:"Rate shock",event:"Interest rates rise",expect:["Loans and refinancing become more expensive.","Bond yields and discount rates can move higher.","Rate-sensitive demand can cool.","Banks, housing, autos and leveraged firms can react differently."],check:["NIFTY Bank","NIFTY 50","India VIX","USD/INR"]}
   };
   const replayCase=replayMap[replay];
+  const exposureMap:any={
+    crude:{title:"Crude oil exposure",sectors:[
+      {name:"Aviation",bias:"Cost pressure",why:"Jet fuel is a major operating input; pass-through to fares and hedging matter.",companies:["InterGlobe Aviation"],watch:"ATF prices · fares · fuel CASK"},
+      {name:"Paints & chemicals",bias:"Input pressure",why:"Crude-linked derivatives can affect raw-material costs and gross margins.",companies:["Asian Paints"],watch:"gross margin · raw material basket"},
+      {name:"Upstream energy",bias:"Revenue sensitivity",why:"Higher realised crude can support upstream revenue, while taxes and policy can alter pass-through.",companies:["ONGC","Oil India"],watch:"realisation · production · levies"},
+      {name:"Oil marketing",bias:"Mixed",why:"Refining margins, inventory effects and retail pricing can move in different directions.",companies:["IOC","BPCL","HPCL"],watch:"GRM · marketing margin · inventory"}
+    ]},
+    rupee:{title:"Rupee exposure",sectors:[
+      {name:"IT services",bias:"Foreign revenue",why:"Large foreign-currency revenue can translate differently when INR moves; hedges and overseas costs matter.",companies:["TCS","Infosys","HCLTech"],watch:"constant-currency growth · hedge rate · margin"},
+      {name:"Pharma exporters",bias:"Export sensitivity",why:"Foreign sales may benefit from translation, but imported inputs and geographic mix matter.",companies:["Sun Pharma","Dr Reddy's"],watch:"US revenue · API costs · FX gains/losses"},
+      {name:"Import-heavy businesses",bias:"Cost pressure",why:"Dollar-priced inputs become more expensive in INR unless hedged or passed to customers.",companies:["Sector-specific"],watch:"import share · hedging · pricing power"}
+    ]},
+    rates:{title:"Interest-rate exposure",sectors:[
+      {name:"Banks",bias:"Two-sided",why:"Asset yields, deposit costs, loan growth and credit quality can respond at different speeds.",companies:["HDFC Bank","ICICI Bank","SBI"],watch:"NIM · deposit cost · credit growth · GNPA"},
+      {name:"Housing & real estate",bias:"Demand sensitivity",why:"Mortgage affordability and developer funding costs can change with rates.",companies:["DLF","Godrej Properties"],watch:"bookings · mortgage rates · net debt"},
+      {name:"Autos",bias:"Financing sensitivity",why:"EMI affordability can influence financed vehicle demand, but income and product cycles also matter.",companies:["Maruti Suzuki","M&M"],watch:"retail volumes · financing penetration"},
+      {name:"Leveraged firms",bias:"Interest cost",why:"Floating-rate or refinancing-heavy balance sheets can see earnings sensitivity.",companies:["Company-specific"],watch:"net debt/EBITDA · interest coverage · maturity schedule"}
+    ]}
+  };
+  const exposureCase=exposureMap[transmission];
 
   function testHypothesis(){
     const a=data?.series.find(s=>s.code===hypX),b=data?.series.find(s=>s.code===hypY);
@@ -251,10 +272,13 @@ export default function EconomyDashboard(){
         <article><small>MARKET</small><b>Sector divergence</b><span>Test rather than assume one market-wide effect</span><em>Bank: {pct(data?.series.find(s=>s.code==="banknifty")?.dayPct??null)}</em></article>
       </div>}
       <div className="transmissionRule"><b>Research rule</b><span>Mechanism → measurable variable → historical test → counter-evidence → company exposure.</span></div>
+      <div className="exposureHeader"><div><small>SECTOR → COMPANY</small><h3>{exposureCase.title}</h3></div><span>Select an exposure to see what should actually be measured.</span></div>
+      <div className="exposureGrid">{exposureCase.sectors.map((s:any)=><button key={s.name} onClick={()=>{setSelectedExposure(s);updateLearning(["macro","companies","fundamentals"],4)}} className={selectedExposure?.name===s.name?"on":""}><small>{s.bias}</small><b>{s.name}</b><span>{s.companies.join(" · ")}</span></button>)}</div>
+      {selectedExposure&&<div className="exposureDetail"><div><small>MECHANISM</small><h3>{selectedExposure.name}</h3><p>{selectedExposure.why}</p></div><div><small>COMPANY EXAMPLES — RESEARCH, NOT RECOMMENDATIONS</small><p>{selectedExposure.companies.join(" · ")}</p></div><div><small>VERIFY IN FUNDAMENTALS</small><p>{selectedExposure.watch}</p></div><a href="/market-lens">Open Market Lens →</a></div>}
     </section>
 
     <section className="economySection statsLab">
-      <div className="economyTitle"><p>04 / STATISTICS LAB</p><h2>Test relationships instead of guessing.</h2><span>Daily returns are used for correlation and regression so unrelated price levels do not fool the analysis.</span></div>
+      <div className="economyTitle"><p>05 / STATISTICS LAB</p><h2>Test relationships instead of guessing.</h2><span>Daily returns are used for correlation and regression so unrelated price levels do not fool the analysis.</span></div>
       <div className="statControls"><label>X variable<select value={x} onChange={e=>setX(e.target.value)}>{data?.series.map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</select></label><label>Y variable<select value={y} onChange={e=>setY(e.target.value)}>{data?.series.map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</select></label></div>
       <div className="statResult"><div><small>RETURN CORRELATION</small><strong>{corr==null?"—":corr.toFixed(3)}</strong><span>{corrText}</span></div><div><small>REGRESSION SLOPE</small><strong>{reg?reg.slope.toFixed(3):"—"}</strong><span>Estimated Y move for a 1-unit X move</span></div><div><small>R²</small><strong>{reg?reg.r2.toFixed(3):"—"}</strong><span>How much variation this simple line explains</span></div></div>
       <div className="wolframVerify">
@@ -290,7 +314,7 @@ export default function EconomyDashboard(){
     </section>
 
     <section className="economySection hypothesisLab">
-      <div className="economyTitle"><p>05 / BUILD A HYPOTHESIS</p><h2>Predict first. Then make the data argue with you.</h2><span>This is the fun part: form a macro idea and test whether recent history supports its direction.</span></div>
+      <div className="economyTitle"><p>06 / BUILD A HYPOTHESIS</p><h2>Predict first. Then make the data argue with you.</h2><span>This is the fun part: form a macro idea and test whether recent history supports its direction.</span></div>
       <div className="hypothesisBuilder">
         <select value={hypX} onChange={e=>setHypX(e.target.value)}>{data?.series.map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</select>
         <select value={hypSign} onChange={e=>setHypSign(e.target.value as any)}><option value="same">moves in the same direction as</option><option value="opposite">moves opposite to</option></select>
@@ -316,13 +340,13 @@ export default function EconomyDashboard(){
     </section>
 
     <section className="economySection eventReplay">
-      <div className="economyTitle"><p>06 / EVENT REPLAY</p><h2>Make a prediction before looking at the reaction.</h2><span>Train causal thinking, then check the real variables.</span></div>
+      <div className="economyTitle"><p>07 / EVENT REPLAY</p><h2>Make a prediction before looking at the reaction.</h2><span>Train causal thinking, then check the real variables.</span></div>
       <div className="replayTabs">{Object.entries(replayMap).map(([k,v]:any)=><button key={k} className={replay===k?"on":""} onClick={()=>{setReplay(k);updateLearning(["macro"],3)}}>{v.title}</button>)}</div>
       <div className="replayCard"><div><small>EVENT</small><h3>{replayCase.event}</h3><p>Before opening the chain, write down what you think should happen.</p></div><div><small>EXPECTED TRANSMISSION</small>{replayCase.expect.map((z:string,i:number)=><p key={i}><b>{i+1}</b>{z}</p>)}</div><div><small>CHECK THESE VARIABLES</small>{replayCase.check.map((z:string)=><span key={z}>{z}</span>)}</div></div>
     </section>
 
     <section className="economySection newsRadar">
-      <div className="economyTitle"><p>07 / DAILY ECONOMIC RADAR</p><h2>One economy feed, translated into impact.</h2><span>Headline-level updates are tagged by transmission channel and linked back to the original source.</span></div>
+      <div className="economyTitle"><p>08 / DAILY ECONOMIC RADAR</p><h2>One economy feed, translated into impact.</h2><span>Headline-level updates are tagged by transmission channel and linked back to the original source.</span></div>
       <div className="newsGrid">{data?.news.map((n:any,i:number)=><article key={n.link+i}><div><span>{n.tag}</span><time>{n.pubDate?new Date(n.pubDate).toLocaleDateString("en-IN"):""}</time></div><h3>{n.title}</h3><p><b>Why it could matter:</b> {n.effect}</p><a href={n.link} target="_blank" rel="noreferrer">Read original →</a></article>)}</div>
     </section>
   </main>
