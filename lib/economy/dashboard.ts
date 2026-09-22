@@ -1,4 +1,5 @@
 import {db} from "../db";
+import {getRbiOfficialPulse,officialMacroCatalogue} from "../official-india-data";
 
 export type EconomyPoint={t:number;v:number};
 export type EconomySeries={
@@ -47,15 +48,10 @@ async function fetchSeries(item:typeof indicators[number]):Promise<EconomySeries
 }
 
 async function fetchRbiPulse(){
-  const fallback={repoRate:null,cpi:null,wpi:null,source:"RBI DBIE",url:"https://data.rbi.org.in",cadence:"Official release cadence"};
-  try{
-    const r=await fetch("https://dbieold.rbi.org.in/DBIE/",{next:{revalidate:21600},headers:{"User-Agent":"Mozilla/5.0 IndiaLens/1.0"}});
-    if(!r.ok)return fallback;const html=await r.text();
-    const find=(label:string)=>{const m=html.match(new RegExp(label+"\\s*:?\\s*</?[^>]*>?\\s*([0-9]+(?:\\.[0-9]+)?)","i"));return m?Number(m[1]):null};
-    return {...fallback,repoRate:find("Repo Rate"),cpi:find("CPI Inflation"),wpi:find("WPI Inflation")};
-  }catch{return fallback}
+  const rows=await getRbiOfficialPulse();
+  const by=Object.fromEntries(rows.map(x=>[x.code,x]));
+  return {repoRate:by.repo?.value??null,cpi:by.cpi?.value??null,wpi:by.wpi?.value??null,source:"RBI DBIE",url:"https://data.rbi.org.in",cadence:"Official release cadence",details:rows};
 }
-
 function decode(s:string){return s.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/<[^>]+>/g,"").trim()}
 function tagHeadline(title:string){
   const t=title.toLowerCase();
@@ -111,7 +107,7 @@ export async function getEconomyDashboard(){
   const [series,rbi,news]=await Promise.all([Promise.all(indicators.map(fetchSeries)),fetchRbiPulse(),fetchEconomyNews()]);
   saveDaily(series).catch(()=>{});
   const correlations:any[]=[];for(let i=0;i<series.length;i++)for(let j=i+1;j<series.length;j++){const c=correlation(series[i].history,series[j].history);if(c!=null)correlations.push({a:series[i].code,b:series[j].code,value:c})}
-  return {generatedAt:new Date().toISOString(),series,rbi,news,correlations,
+  return {generatedAt:new Date().toISOString(),series,rbi,news,correlations,officialMacroCatalogue:officialMacroCatalogue(),
     releaseBoard:[
       {name:"GST collections",cadence:"Monthly",source:"GST / Ministry of Finance",why:"A useful pulse of nominal activity, formalisation and tax receipts."},
       {name:"CPI inflation",cadence:"Monthly",source:"MoSPI / e-Sankhyiki",why:"Tracks household price pressure and matters for RBI policy."},
