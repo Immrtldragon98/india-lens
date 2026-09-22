@@ -3,6 +3,7 @@ import Link from "next/link";
 import {findSector,recentEvents} from "../../../lib/repositories";
 import {getSector} from "../../../lib/domain";
 import {getSectorMarket} from "../../../lib/market-data";
+import SectorStory from "./SectorStory";
 
 const fmt=(n:number|null)=>n==null?"—":n.toLocaleString("en-IN",{maximumFractionDigits:2});
 const pct=(n:number|null)=>n==null?"—":`${n>=0?"+":""}${n.toFixed(2)}%`;
@@ -46,11 +47,23 @@ export default async function SectorPage({params}:{params:Promise<{slug:string}>
       </div>
     </section>
 
+    <SectorStory sector={base}/>
+
+    <section id="industries" className="section">
+      <div className="sectionTitle"><p>01 / WHAT MAKES UP THE SECTOR?</p><h2>Open the machine before looking at stocks.</h2><span>{base.name} is not one business. These industries can react differently to the same change in India's economy.</span></div>
+      <div className="industryGrid">{(resolved.industries||base.industries).map((x:string,i:number)=><article key={x}><b>{String(i+1).padStart(2,"0")}</b><h3>{x}</h3><p>Ask: who is the customer, what creates demand, what is the biggest cost, and how does this industry affect India?</p></article>)}</div>
+    </section>
+
+    <section className="section framework sectorIndiaFlow">
+      <div className="sectionTitle"><p>02 / CONNECT IT TO INDIA</p><h2>Follow the money and the real-world effect.</h2><span>A sector matters because it changes something outside the stock market.</span></div>
+      <div className="steps"><div><b>1</b><h3>People</h3><p>Does it change jobs, income, affordability or household spending?</p></div><div><b>2</b><h3>Business</h3><p>Does it change investment, productivity, borrowing, capacity or input costs?</p></div><div><b>3</b><h3>India ↔ world</h3><p>Does it earn exports, require imports, depend on commodities or bring foreign capital?</p></div><div><b>4</b><h3>Proof</h3><p>Which simple number would show whether this story is actually happening?</p></div></div>
+    </section>
+
     <section id="companies" className="section companySection">
       <div className="sectionTitle">
-        <p>01 / SECTOR COMPANIES</p>
+        <p>03 / COMPANIES AS EVIDENCE</p>
         <h2>Who represents {base.name} in the listed market?</h2>
-        <span>Use price movement to identify what changed, then open the business questions: revenue drivers, capacity, margins, balance sheet, policy exposure and value-chain position.</span>
+        <span>Companies are examples of how the sector works. Start with the sector story; only then use company results and prices to test whether the story is visible in the real world.</span>
       </div>
       <div className="companyTable">
         <div className="companyRow companyHead"><span>Company</span><span>Industry</span><span>Price</span><span>1D</span><span>1W</span><span>1M</span></div>
@@ -66,23 +79,8 @@ export default async function SectorPage({params}:{params:Promise<{slug:string}>
       {!companies.length&&<div className="emptyState"><strong>Company universe not mapped yet.</strong><p>This sector exists in the India thesis, but listed-company coverage has not been added yet.</p></div>}
     </section>
 
-    <section id="industries" className="section">
-      <div className="sectionTitle"><p>02 / INDUSTRY MAP</p><h2>What sits underneath {base.name}?</h2><span>Break the sector into its operating engines before comparing companies.</span></div>
-      <div className="industryGrid">{(resolved.industries||base.industries).map((x:string,i:number)=><article key={x}><b>{String(i+1).padStart(2,"0")}</b><h3>{x}</h3><p>Study demand, supply, capacity, pricing power, imports/exports, regulation and the listed companies exposed to this industry.</p></article>)}</div>
-    </section>
-
-    <section className="section framework">
-      <div className="sectionTitle"><p>03 / INDIA TRANSMISSION</p><h2>How does {base.name} change the India thesis?</h2><span>The core idea of India Lens is to treat the country like a company and every sector like an operating division.</span></div>
-      <div className="steps">
-        <div><b>1</b><h3>Demand</h3><p>Is domestic consumption, government spending or export demand strengthening or weakening?</p></div>
-        <div><b>2</b><h3>Capital</h3><p>Are companies investing, borrowing, raising capacity or improving productivity?</p></div>
-        <div><b>3</b><h3>External exposure</h3><p>Does the sector improve exports and self-reliance, or increase dependence on imports and foreign prices?</p></div>
-        <div><b>4</b><h3>Household effect</h3><p>Does it create jobs, affect inflation, raise income, improve access or change household spending?</p></div>
-      </div>
-    </section>
-
     <section id="events" className="section dark">
-      <div className="sectionTitle"><p>04 / WHAT HAPPENED?</p><h2>Events that can change the thesis.</h2><span>Policy, prices, capacity, regulation, technology, demand and company actions should all connect back to measurable sector effects.</span></div>
+      <div className="sectionTitle"><p>04 / WHAT CHANGED THE STORY?</p><h2>Events that can change the thesis.</h2><span>Policy, prices, capacity, regulation, technology, demand and company actions should all connect back to measurable sector effects.</span></div>
       {events.length?<div className="timeline">{events.map((e:any)=><article key={e.title+e.event_date}><time>{String(e.event_date)}</time><div><h3>{e.title}</h3><p>{e.summary}</p>{e.url&&<a href={e.url} target="_blank" rel="noreferrer">Source →</a>}</div></article>)}</div>:<div className="emptyState"><strong>No verified sector events yet.</strong><p>The structure is ready, but we will only show event data once it is backed by a source. The next ingestion step is to populate this timeline automatically from official and market feeds.</p></div>}
     </section>
   </main>
