@@ -84,10 +84,27 @@ export default function EconomyDashboard(){
     try{const r=await fetch("/api/economy",{cache:"no-store"});const j=await r.json();if(!r.ok)throw new Error(j.error||"Economy feed unavailable");setData(j)}
     catch(e:any){setError(e?.message||"Economy feed unavailable")}
   }
+  function updateLearning(domains:string[],amount=5){
+    try{
+      const raw=localStorage.getItem("indiaLensLearningProfile");
+      const base=raw?JSON.parse(raw):{level:"simple",auto:true,interactions:0,domains:{macro:10,markets:10,companies:10,fundamentals:5,technical:0,statistics:0,bonds:0,currency:5}};
+      const next={...base,interactions:(base.interactions||0)+1,domains:{...base.domains}};
+      for(const d of domains)next.domains[d]=Math.min(100,(next.domains[d]||0)+amount);
+      const avg=Object.values(next.domains).reduce((a:any,b:any)=>a+Number(b),0)/Object.values(next.domains).length;
+      if(next.auto)next.level=next.interactions>=20&&avg>=45?"deep":next.interactions>=6&&avg>=20?"learner":"simple";
+      localStorage.setItem("indiaLensLearningProfile",JSON.stringify(next));
+      document.documentElement.dataset.learning=next.level;
+      window.dispatchEvent(new CustomEvent("india-lens-learning-change",{detail:next}));
+    }catch{}
+  }
+
   async function loadBriefing(){
     setBriefingLoading(true);
-    try{const r=await fetch("/api/economy/briefing",{cache:"no-store"});const j=await r.json();if(r.ok){setBriefing(j.briefing||"");setBriefingSource(j.source||"")}}
-    finally{setBriefingLoading(false)}
+    try{
+      const level=document.documentElement.dataset.learning||"simple";
+      const r=await fetch("/api/economy/briefing?level="+encodeURIComponent(level),{cache:"no-store"});
+      const j=await r.json();if(r.ok){setBriefing(j.briefing||"");setBriefingSource(j.source||"")}
+    }finally{setBriefingLoading(false)}
   }
   useEffect(()=>{
     load();loadBriefing();
@@ -135,6 +152,7 @@ export default function EconomyDashboard(){
       text:matched?"Historical data supports the direction of your hypothesis.":"Historical data challenges the direction of your hypothesis."
     };
     setHypResult({ok:true,...item});
+    updateLearning(["macro","statistics"],8);
     const next=[item,...journal].slice(0,30);
     setJournal(next);
     localStorage.setItem("indiaLensHypothesisJournal",JSON.stringify(next));
@@ -218,7 +236,7 @@ export default function EconomyDashboard(){
 
     <section className="economySection eventReplay">
       <div className="economyTitle"><p>06 / EVENT REPLAY</p><h2>Make a prediction before looking at the reaction.</h2><span>Train causal thinking, then check the real variables.</span></div>
-      <div className="replayTabs">{Object.entries(replayMap).map(([k,v]:any)=><button key={k} className={replay===k?"on":""} onClick={()=>setReplay(k)}>{v.title}</button>)}</div>
+      <div className="replayTabs">{Object.entries(replayMap).map(([k,v]:any)=><button key={k} className={replay===k?"on":""} onClick={()=>{setReplay(k);updateLearning(["macro"],3)}}>{v.title}</button>)}</div>
       <div className="replayCard"><div><small>EVENT</small><h3>{replayCase.event}</h3><p>Before opening the chain, write down what you think should happen.</p></div><div><small>EXPECTED TRANSMISSION</small>{replayCase.expect.map((z:string,i:number)=><p key={i}><b>{i+1}</b>{z}</p>)}</div><div><small>CHECK THESE VARIABLES</small>{replayCase.check.map((z:string)=><span key={z}>{z}</span>)}</div></div>
     </section>
 
