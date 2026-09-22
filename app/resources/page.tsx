@@ -27,7 +27,12 @@ export default function ResourcesPage(){
       <div className="officialSourceGrid">{data?.officialSources?.map((s:any)=><a key={s.name} href={s.url} target="_blank" rel="noreferrer"><small>PRIMARY SOURCE</small><h3>{s.name}</h3><p>{s.area}</p><span>Open source →</span></a>)}</div>
     </section>
     <section className="resourceSection">
-      <div className="economyTitle"><p>05 / PROVIDER MAP</p><h2>One source, one clear job.</h2><span>Green means currently wired. Ready means the code path exists but a free token/key is still needed. Reference means we use the official source for verification while ingestion is being hardened.</span></div>
+      <div className="economyTitle"><p>05 / OFFICIAL MACRO PIPELINE</p><h2>Know exactly which institution owns each number.</h2><span>India Lens now separates the official truth layer from convenient market-data fallbacks. Missing official values stay blank rather than being silently substituted.</span></div>
+      <div className="macroPipeline">{data?.rbiOfficial?.map((x:any)=><article key={x.code}><small>{x.frequency} · {x.status}</small><h3>{x.name}</h3><strong>{x.value==null?"—":x.value}{x.value!=null?" "+x.unit:""}</strong><p>{x.period||x.note}</p><a href={x.sourceUrl} target="_blank" rel="noreferrer">{x.source} →</a></article>)}</div>
+      <div className="officialCatalogue">{data?.officialMacroCatalogue?.map((x:any)=><article key={x.name}><div><small>{x.frequency}</small><h3>{x.name}</h3><p>{x.purpose}</p></div><div><b>{x.owner}</b><span>{x.machine}</span><a href={x.url} target="_blank" rel="noreferrer">Official source →</a></div></article>)}</div>
+    </section>
+    <section className="resourceSection">
+      <div className="economyTitle"><p>06 / PROVIDER MAP</p><h2>One source, one clear job.</h2><span>Green means currently wired. Ready means the code path exists but a free token/key is still needed. Reference means we use the official source for verification while ingestion is being hardened.</span></div>
       <div className="providerMap">{data?.providers?.map((p:any)=><article key={p.name}><span className={"dot "+p.status}/><div><h3>{p.name}</h3><p>{p.area}</p></div><small>{p.cost} · {p.status}</small></article>)}</div>
     </section>
   </main>
