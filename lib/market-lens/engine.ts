@@ -110,15 +110,15 @@ async function trackRecord(symbol:string,currentPrice:number){
     let evaluated=0,correct=0;
     for(const row of rows){
       const r=row.result;const age=(Date.now()-new Date(row.created_at).getTime())/86400000;
-      if(age<7||!r?.entryPrice||!r?.scenario?.direction)continue;
+      if(age<30||!r?.entryPrice||!r?.scenario?.direction)continue;
       const actual=currentPrice-r.entryPrice;
       const predicted=r.scenario.direction;
       if(predicted==="mixed")continue;
       evaluated++;
       if((predicted==="up"&&actual>0)||(predicted==="down"&&actual<0))correct++;
     }
-    return {evaluated,correct,accuracyPct:evaluated?round(correct/evaluated*100,1):null};
-  }catch{return {evaluated:0,correct:0,accuracyPct:null}}
+    return {evaluated,correct,accuracyPct:evaluated?round(correct/evaluated*100,1):null,evaluationWindow:"30+ days"};
+  }catch{return {evaluated:0,correct:0,accuracyPct:null,evaluationWindow:"30+ days"}}
 }
 
 export async function analyzeCompany(symbol:string,mode:"beginner"|"analyst"="beginner"){
