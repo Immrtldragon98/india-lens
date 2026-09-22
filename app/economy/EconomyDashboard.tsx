@@ -81,6 +81,9 @@ export default function EconomyDashboard(){
   const [wolfram,setWolfram]=useState<any>(null);
   const [wolframLoading,setWolframLoading]=useState(false);
   const [wolframError,setWolframError]=useState("");
+  const [mathAgent,setMathAgent]=useState<any>(null);
+  const [mathAgentLoading,setMathAgentLoading]=useState(false);
+  const [transmission,setTransmission]=useState("crude");
 
   async function load(){
     setError("");
@@ -175,6 +178,17 @@ export default function EconomyDashboard(){
     finally{setWolframLoading(false)}
   }
 
+  async function runMathAgent(){
+    setMathAgentLoading(true);setWolframError("");setMathAgent(null);
+    try{
+      const payload={x:returnPairs.map(r=>r.x),y:returnPairs.map(r=>r.y)};
+      const r=await fetch("/api/wolfram/analyze",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+      const j=await r.json();if(!r.ok)throw new Error(j.error||"Math Agent failed");
+      setMathAgent(j);updateLearning(["statistics","macro"],8);
+    }catch(e:any){setWolframError(e?.message||"Math Agent failed")}
+    finally{setMathAgentLoading(false)}
+  }
+
   function clearJournal(){
     setJournal([]);setScore({tested:0,supported:0,challenged:0});
     localStorage.removeItem("indiaLensHypothesisJournal");
@@ -210,6 +224,35 @@ export default function EconomyDashboard(){
       <div className="raceGrid">{raceSeries.sort((a:any,b:any)=>(b.end??0)-(a.end??0)).map((s:any,i:number)=><article key={s.code}><span>#{i+1}</span><h3>{s.name}</h3><strong>{s.end==null?"—":s.end.toFixed(1)}</strong><p>{s.end==null?"":(s.end>=100?"+":"")+((s.end-100).toFixed(1))+"% from start"}</p><div className="sparkline">{s.points.filter((_:any,j:number)=>j%Math.max(1,Math.floor(s.points.length/24))===0).map((p:any,j:number)=><i key={j} style={{height:Math.max(3,Math.min(42,18+(p.v-100)*1.5))}} title={p.v.toFixed(1)}/>)}</div></article>)}</div>
     </section>
 
+    <section className="economySection transmissionLab">
+      <div className="economyTitle"><p>04 / TRANSMISSION MAP</p><h2>Follow a shock through India.</h2><span>A causal-learning map: mechanism first, then observable evidence. Arrows are hypotheses to test, not claims that one variable alone causes the next.</span></div>
+      <div className="transmissionTabs">{[
+        ["crude","Crude oil"],["rupee","Rupee"],["rates","Interest rates"]
+      ].map(([k,label])=><button key={k} className={transmission===k?"on":""} onClick={()=>{setTransmission(k);updateLearning(["macro"],3)}}>{label}</button>)}</div>
+      {transmission==="crude"&&<div className="transmissionFlow">
+        <article><small>SHOCK</small><b>Brent crude ↑</b><span>Imported energy costs can rise</span></article><i>→</i>
+        <article><small>EXTERNAL</small><b>Import bill ↑</b><span>More foreign currency may be needed</span></article><i>→</i>
+        <article><small>CURRENCY</small><b>INR pressure</b><span>Check USD/INR rather than assume</span><em>LIVE: {pct(data?.series.find(s=>s.code==="usdinr")?.dayPct??null)}</em></article><i>→</i>
+        <article><small>PRICES</small><b>Inflation risk</b><span>Fuel/logistics pass-through varies</span><em>CPI: {data?.rbi?.cpi??"—"}{data?.rbi?.cpi!=null?"%":""}</em></article><i>→</i>
+        <article><small>CAPITAL</small><b>Rates / margins</b><span>Watch policy, yields and exposed sectors</span><em>Repo: {data?.rbi?.repoRate??"—"}{data?.rbi?.repoRate!=null?"%":""}</em></article>
+      </div>}
+      {transmission==="rupee"&&<div className="transmissionFlow">
+        <article><small>SHOCK</small><b>INR weakens</b><span>Imported goods cost more in rupees</span><em>LIVE: {pct(data?.series.find(s=>s.code==="usdinr")?.dayPct??null)}</em></article><i>→</i>
+        <article><small>COMPANIES</small><b>Importers / exporters</b><span>Exposure differs by revenue and input currency</span></article><i>→</i>
+        <article><small>PRICES</small><b>Imported inflation</b><span>Commodity prices determine pass-through</span></article><i>→</i>
+        <article><small>POLICY</small><b>RBI response</b><span>Rates, liquidity and FX operations matter</span></article><i>→</i>
+        <article><small>MARKET</small><b>Valuation reaction</b><span>Check NIFTY, banks and volatility</span><em>VIX: {pct(data?.series.find(s=>s.code==="indiavix")?.dayPct??null)}</em></article>
+      </div>}
+      {transmission==="rates"&&<div className="transmissionFlow">
+        <article><small>SHOCK</small><b>Rates ↑</b><span>Cost of money increases</span><em>Repo: {data?.rbi?.repoRate??"—"}{data?.rbi?.repoRate!=null?"%":""}</em></article><i>→</i>
+        <article><small>CREDIT</small><b>Borrowing cost ↑</b><span>Loans and refinancing can become dearer</span></article><i>→</i>
+        <article><small>DEMAND</small><b>Rate-sensitive demand</b><span>Housing, autos and capex may react</span></article><i>→</i>
+        <article><small>VALUATION</small><b>Discount rate ↑</b><span>Future cash flows can be valued differently</span></article><i>→</i>
+        <article><small>MARKET</small><b>Sector divergence</b><span>Test rather than assume one market-wide effect</span><em>Bank: {pct(data?.series.find(s=>s.code==="banknifty")?.dayPct??null)}</em></article>
+      </div>}
+      <div className="transmissionRule"><b>Research rule</b><span>Mechanism → measurable variable → historical test → counter-evidence → company exposure.</span></div>
+    </section>
+
     <section className="economySection statsLab">
       <div className="economyTitle"><p>04 / STATISTICS LAB</p><h2>Test relationships instead of guessing.</h2><span>Daily returns are used for correlation and regression so unrelated price levels do not fool the analysis.</span></div>
       <div className="statControls"><label>X variable<select value={x} onChange={e=>setX(e.target.value)}>{data?.series.map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</select></label><label>Y variable<select value={y} onChange={e=>setY(e.target.value)}>{data?.series.map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</select></label></div>
@@ -219,6 +262,17 @@ export default function EconomyDashboard(){
         <button onClick={verifyWithWolfram} disabled={wolframLoading||returnPairs.length<5}>{wolframLoading?"Checking…":"Verify with Wolfram →"}</button>
       </div>
       {wolframError&&<div className="wolframError">{wolframError}</div>}
+      <div className="mathAgentBox">
+        <div><small>MATH AGENT V2</small><h3>Ask Wolfram whether the relationship survives harder tests.</h3><p>Tests same-day significance, 1–10 trading-day lags and whether the relationship changed between the first and second halves of the sample.</p></div>
+        <button onClick={runMathAgent} disabled={mathAgentLoading||returnPairs.length<20}>{mathAgentLoading?"Running tests…":"Run Math Agent →"}</button>
+      </div>
+      {mathAgent&&<div className="mathAgentResult">
+        <article><small>SAMPLE</small><strong>{mathAgent.count}</strong><span>matched days</span></article>
+        <article><small>P-VALUE</small><strong>{Number.isFinite(Number(mathAgent.pValue))?Number(mathAgent.pValue).toPrecision(3):"—"}</strong><span>{mathAgent.interpretation?.significance}</span></article>
+        <article><small>BEST TESTED LAG</small><strong>{mathAgent.bestLagDays??"—"}D</strong><span>r {Number.isFinite(Number(mathAgent.bestLagCorrelation))?Number(mathAgent.bestLagCorrelation).toFixed(2):"—"}</span></article>
+        <article><small>REGIME Δr</small><strong>{Number.isFinite(Number(mathAgent.regimeChange))?Number(mathAgent.regimeChange).toFixed(2):"—"}</strong><span>early → recent</span></article>
+        <div><b>{mathAgent.interpretation?.lagText}</b><p>{mathAgent.interpretation?.regime}</p><em>{mathAgent.interpretation?.caution}</em></div>
+      </div>}
       {wolfram&&<div className="wolframResult">
         <div><small>WOLFRAM CORRELATION</small><strong>{Number(wolfram.correlation).toFixed(3)}</strong></div>
         <div><small>WOLFRAM SLOPE</small><strong>{Number(wolfram.slope).toFixed(3)}</strong></div>
