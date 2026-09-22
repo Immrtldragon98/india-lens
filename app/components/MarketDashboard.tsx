@@ -14,6 +14,7 @@ export default function MarketDashboard(){
   const [providers,setProviders]=useState<any[]>([]);
   const [period,setPeriod]=useState<"dayPct"|"weekPct"|"monthPct">("dayPct");
   const [query,setQuery]=useState("");
+  const [universeMatches,setUniverseMatches]=useState<any[]>([]);
   const [error,setError]=useState("");
 
   async function load(){
@@ -32,6 +33,12 @@ export default function MarketDashboard(){
   }
 
   useEffect(()=>{load();const id=setInterval(load,300000);return()=>clearInterval(id)},[]);
+  useEffect(()=>{
+    const q=query.trim();
+    if(q.length<2){setUniverseMatches([]);return}
+    const id=setTimeout(()=>{fetch("/api/market/search?q="+encodeURIComponent(q)).then(r=>r.json()).then(j=>setUniverseMatches(j.items||[])).catch(()=>setUniverseMatches([]))},250);
+    return()=>clearTimeout(id);
+  },[query]);
 
   const leaders=useMemo(()=>{
     if(!data)return[];
@@ -66,8 +73,12 @@ export default function MarketDashboard(){
     </div>
 
     <div className="marketSearch">
-      <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search company, symbol or sector…"/>
-      {query&&<div className="searchResults">{matches.length?matches.map(x=><div key={x.symbol}><span><b>{x.symbol}</b>{x.name}<small>{x.sector} · {x.industry}</small></span><span className={(x.dayPct??0)>=0?"pos":"neg"}>₹{fmt(x.price)}<small>{pct(x.dayPct)}</small></span></div>):<p>No tracked company matched.</p>}</div>}
+      <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search the NSE universe by company or symbol…"/>
+      {query&&<div className="searchResults">
+        {matches.map(x=><div key={"tracked-"+x.symbol}><span><b>{x.symbol}</b>{x.name}<small>{x.sector} · {x.industry} · tracked analysis</small></span><span className={(x.dayPct??0)>=0?"pos":"neg"}>₹{fmt(x.price)}<small>{pct(x.dayPct)}</small></span></div>)}
+        {universeMatches.filter((u:any)=>!matches.some(x=>x.symbol===u.symbol)).slice(0,10).map((u:any)=><div key={"nse-"+u.symbol}><span><b>{u.symbol}</b>{u.name}<small>NSE equity · daily instrument master</small></span><span><small>{u.isin||"NSE"}</small></span></div>)}
+        {!matches.length&&!universeMatches.length&&<p>No NSE company matched.</p>}
+      </div>}
     </div>
 
     {error&&<div className="marketError">{error}</div>}
