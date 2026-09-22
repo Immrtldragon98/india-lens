@@ -1,4 +1,5 @@
 import {marketCompanies,MarketCompany} from "./market-universe";
+import {getTrackedUpstoxQuoteMap} from "./upstox";
 
 export type MarketSnapshot={
   symbol:string;
@@ -48,6 +49,16 @@ export async function getSectorMarket(sector:string){
 
 export async function getMarketOverview(){
   const snapshots=await Promise.all(marketCompanies.map(yahooSnapshot));
+  const upstox=await getTrackedUpstoxQuoteMap(marketCompanies.map(x=>x.symbol));
+  if(upstox){
+    for(const s of snapshots){
+      const q:any=upstox[s.symbol];
+      if(!q)continue;
+      const last=typeof q.last_price==="number"?q.last_price:null;
+      const prev=typeof q.prev_close_price==="number"?q.prev_close_price:q?.ohlc?.close;
+      if(last!=null){s.price=last;s.dayPct=prev?((last-prev)/prev)*100:s.dayPct;s.asOf=q.timestamp||s.asOf;s.source="Upstox Analytics";}
+    }
+  }
   const available=snapshots.filter(x=>x.price!=null);
   const sectors=[...new Set(marketCompanies.map(x=>x.sector))].map(sector=>{
     const rows=available.filter(x=>x.sector===sector).sort((a,b)=>(b.dayPct??-999)-(a.dayPct??-999));
