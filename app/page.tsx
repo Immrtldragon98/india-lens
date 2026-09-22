@@ -40,8 +40,8 @@ return <main>
 </section>
 
 <section id="sectors" className="section dark">
-  <div className="sectionTitle"><p>02 / FULL SECTOR MAP</p><h2>{sectors.length} research modules across the market.</h2><span>Use the market heatmap for movement, then open a sector to understand the underlying economics.</span></div>
-  <div className="grid">{sectors.map((s,i)=><article key={s.slug}><div className="icon">{icons[i%icons.length]}</div><h3>{s.name}</h3><p>{s.summary}</p><div className="tags"><span>Drivers</span><span>Risks</span><span>Industries</span></div><Link href={"/sector/"+s.slug}>Open research module →</Link></article>)}</div>
+  <div className="sectionTitle"><p>02 / INDIA'S OPERATING DIVISIONS</p><h2>Where does India's money, work and growth actually happen?</h2><span>Do not start with stock prices. Pick a part of the economy and understand what it does for people, businesses and India first.</span></div>
+  <div className="grid">{sectors.map((s,i)=><article key={s.slug}><div className="icon">{icons[i%icons.length]}</div><h3>{s.name}</h3><p>{s.summary}</p><div className="tags"><span>What is it?</span><span>Why India cares</span><span>What to watch</span></div><Link href={"/sector/"+s.slug}>Understand this part of India →</Link></article>)}</div>
 </section>
 
 <section id="framework" className="section framework">
