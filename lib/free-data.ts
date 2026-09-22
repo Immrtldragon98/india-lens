@@ -1,4 +1,5 @@
 import {getNseUniverseStats} from "./upstox";
+import {getRbiOfficialPulse,officialMacroCatalogue} from "./official-india-data";
 type WbIndicator={code:string;name:string;plain:string};
 const wb:WbIndicator[]=[
   {code:"NY.GDP.MKTP.KD.ZG",name:"GDP growth",plain:"How fast India's total economic output is growing."},
@@ -32,7 +33,7 @@ async function amfiSnapshot(){
 }
 
 export async function getFreeDataHub(){
-  const [worldBank,amfi,nseUniverse]=await Promise.all([Promise.all(wb.map(worldBankIndicator)),amfiSnapshot(),getNseUniverseStats()]);
+  const [worldBank,amfi,nseUniverse,rbiOfficial,officialMacroCatalogue:officialMacroCatalogue(),rbiOfficial]=await Promise.all([Promise.all(wb.map(worldBankIndicator)),amfiSnapshot(),getNseUniverseStats(),getRbiOfficialPulse()]);
   return {
     generatedAt:new Date().toISOString(),
     worldBank,amfi,nseUniverse,
@@ -45,7 +46,8 @@ export async function getFreeDataHub(){
     ],
     providers:[
       {name:"RBI DBIE",area:"Rates, banking, FX, reserves, bonds",status:"active",cost:"Free official"},
-      {name:"MoSPI / data.gov.in",area:"GDP, CPI, industry, labour, public datasets",status:"reference",cost:"Free official"},
+      {name:"MoSPI / e-Sankhyiki",area:"GDP, CPI, industry and official macro time series",status:"active",cost:"Free official"},
+      {name:"data.gov.in",area:"Government catalogue APIs and ministry datasets",status:"active",cost:"Free official"},
       {name:"World Bank",area:"India vs world structural indicators",status:"active",cost:"Free, no key"},
       {name:"AMFI",area:"Indian mutual fund NAV universe",status:"active",cost:"Free official"},
       {name:"NSE",area:"Official EOD, indices, derivatives, debt reports",status:"reference",cost:"Free reports"},
