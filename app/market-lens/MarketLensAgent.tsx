@@ -4,8 +4,8 @@ import {useEffect,useMemo,useState} from "react";
 type Company={symbol:string;name:string;sector:string;industry:string};
 type Level="starter"|"learner"|"analyst";
 
-export default function MarketLensAgent({companies}:{companies:Company[]}){
-  const [symbol,setSymbol]=useState("RELIANCE");
+export default function MarketLensAgent({companies,initialSymbol}:{companies:Company[];initialSymbol?:string}){
+  const [symbol,setSymbol]=useState(initialSymbol||"RELIANCE");
   const [level,setLevel]=useState<Level>("starter");
   const [analyses,setAnalyses]=useState(0);
   const [data,setData]=useState<any>(null);
@@ -31,7 +31,7 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
     applyGlobal();
     window.addEventListener("india-lens-learning-change",onChange);
     return()=>window.removeEventListener("india-lens-learning-change",onChange);
-  },[searchParams]);
+  },[]);
 
   function updateLearning(domains:string[],amount=5){
     try{
