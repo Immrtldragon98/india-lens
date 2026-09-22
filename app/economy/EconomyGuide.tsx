@@ -2,10 +2,11 @@
 import {useEffect,useRef,useState} from "react";
 
 type Msg={role:"assistant"|"user";text:string};
-export default function EconomyGuide(){
+export default function EconomyGuide({initialQuestion}:{initialQuestion?:string}){
  const [open,setOpen]=useState(false),[q,setQ]=useState(""),[busy,setBusy]=useState(false),[next,setNext]=useState<string[]>(["What changed today?","Teach me crude → INR","Give me a beginner experiment"]);
  const [msgs,setMsgs]=useState<Msg[]>([{role:"assistant",text:"I’m your Economy Guide. Ask me what a number means, what changed, how one shock can travel through India, or which Economy Lab experiment to run next."}]);
- const end=useRef<HTMLDivElement>(null);useEffect(()=>end.current?.scrollIntoView({behavior:"smooth"}),[msgs,busy]);
+ const end=useRef<HTMLDivElement>(null);const started=useRef(false);useEffect(()=>end.current?.scrollIntoView({behavior:"smooth"}),[msgs,busy]);
+ useEffect(()=>{if(initialQuestion&&!started.current){started.current=true;setTimeout(()=>ask(initialQuestion),50)}},[initialQuestion]);
  async function ask(text=q){
   const question=text.trim();if(!question||busy)return;setOpen(true);setQ("");setMsgs(m=>[...m,{role:"user",text:question}]);setBusy(true);
   try{const level=document.documentElement.dataset.learning||"simple";const r=await fetch("/api/economy/assistant",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question,level})});const j=await r.json();if(!r.ok)throw new Error(j.error||"Guide unavailable");setMsgs(m=>[...m,{role:"assistant",text:j.answer}]);if(Array.isArray(j.next))setNext(j.next);
