@@ -31,7 +31,7 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
     applyGlobal();
     window.addEventListener("india-lens-learning-change",onChange);
     return()=>window.removeEventListener("india-lens-learning-change",onChange);
-  },[]);
+  },[searchParams]);
 
   function updateLearning(domains:string[],amount=5){
     try{
