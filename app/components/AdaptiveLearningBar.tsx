@@ -8,14 +8,20 @@ export default function AdaptiveLearningBar(){
   const [profile,setProfile]=useState<LearningProfile>(defaultLearningProfile);
 
   useEffect(()=>{
-    try{
-      const raw=localStorage.getItem(key);
-      const saved=raw?JSON.parse(raw):defaultLearningProfile;
-      const merged={...defaultLearningProfile,...saved,domains:{...defaultLearningProfile.domains,...saved?.domains}};
-      if(merged.auto)merged.level=recommendedLevel(merged);
-      setProfile(merged);
-      document.documentElement.dataset.learning=merged.level;
-    }catch{document.documentElement.dataset.learning="simple"}
+    const apply=(incoming?:any)=>{
+      try{
+        const raw=localStorage.getItem(key);
+        const saved=incoming||(raw?JSON.parse(raw):defaultLearningProfile);
+        const merged={...defaultLearningProfile,...saved,domains:{...defaultLearningProfile.domains,...saved?.domains}};
+        if(merged.auto)merged.level=recommendedLevel(merged);
+        setProfile(merged);
+        document.documentElement.dataset.learning=merged.level;
+      }catch{document.documentElement.dataset.learning="simple"}
+    };
+    const onChange=(e:any)=>apply(e.detail);
+    apply();
+    window.addEventListener("india-lens-learning-change",onChange);
+    return()=>window.removeEventListener("india-lens-learning-change",onChange);
   },[]);
 
   function save(next:LearningProfile){
