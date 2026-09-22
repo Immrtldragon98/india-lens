@@ -76,6 +76,8 @@ export default function EconomyDashboard(){
   const [hypY,setHypY]=useState("usdinr");
   const [hypSign,setHypSign]=useState<"same"|"opposite">("same");
   const [hypResult,setHypResult]=useState<any>(null);
+  const [journal,setJournal]=useState<any[]>([]);
+  const [score,setScore]=useState({tested:0,supported:0,challenged:0});
 
   async function load(){
     setError("");
@@ -87,7 +89,14 @@ export default function EconomyDashboard(){
     try{const r=await fetch("/api/economy/briefing",{cache:"no-store"});const j=await r.json();if(r.ok){setBriefing(j.briefing||"");setBriefingSource(j.source||"")}}
     finally{setBriefingLoading(false)}
   }
-  useEffect(()=>{load();loadBriefing();const id=setInterval(()=>{load();loadBriefing()},900000);return()=>clearInterval(id)},[]);
+  useEffect(()=>{
+    load();loadBriefing();
+    try{
+      const saved=JSON.parse(localStorage.getItem("indiaLensHypothesisJournal")||"[]");
+      if(Array.isArray(saved)){setJournal(saved);const supported=saved.filter((x:any)=>x.matched).length;setScore({tested:saved.length,supported,challenged:saved.length-supported})}
+    }catch{}
+    const id=setInterval(()=>{load();loadBriefing()},900000);return()=>clearInterval(id)
+  },[]);
 
   const xs=data?.series.find(s=>s.code===x),ys=data?.series.find(s=>s.code===y);
   const levelPairs=useMemo(()=>align(xs,ys),[xs,ys]);
@@ -119,7 +128,23 @@ export default function EconomyDashboard(){
     const r=pearsonPairs(rows),fit=regression(rows);
     if(r==null){setHypResult({ok:false,text:"Not enough matched data to test this hypothesis."});return}
     const matched=hypSign==="same"?r>0:r<0;
-    setHypResult({ok:true,matched,r,fit,count:rows.length,text:matched?"Historical data supports the direction of your hypothesis.":"Historical data challenges the direction of your hypothesis."});
+    const item={
+      id:Date.now(),createdAt:new Date().toISOString(),
+      x:a?.name||hypX,y:b?.name||hypY,sign:hypSign,
+      matched,r,fit,count:rows.length,
+      text:matched?"Historical data supports the direction of your hypothesis.":"Historical data challenges the direction of your hypothesis."
+    };
+    setHypResult({ok:true,...item});
+    const next=[item,...journal].slice(0,30);
+    setJournal(next);
+    localStorage.setItem("indiaLensHypothesisJournal",JSON.stringify(next));
+    const supported=next.filter((z:any)=>z.matched).length;
+    setScore({tested:next.length,supported,challenged:next.length-supported});
+  }
+
+  function clearJournal(){
+    setJournal([]);setScore({tested:0,supported:0,challenged:0});
+    localStorage.removeItem("indiaLensHypothesisJournal");
   }
 
   return <main>
@@ -175,6 +200,20 @@ export default function EconomyDashboard(){
       </div>
       {hypResult&&<div className={"hypothesisResult "+(hypResult.matched?"supported":"challenged")}><small>{hypResult.matched?"SUPPORTED DIRECTION":"CHALLENGED DIRECTION"}</small><h3>{hypResult.text}</h3>{hypResult.ok&&<p>Correlation {hypResult.r.toFixed(3)} · R² {hypResult.fit?.r2?.toFixed(3)??"—"} · {hypResult.count} matched trading days. This is evidence about historical co-movement, not proof of causation or a forecast.</p>}</div>}
       <div className="hypothesisExamples"><span>Try:</span><button onClick={()=>{setHypX("brent");setHypY("usdinr");setHypSign("same")}}>Oil ↑ ↔ USD/INR ↑</button><button onClick={()=>{setHypX("indiavix");setHypY("nifty50");setHypSign("opposite")}}>VIX ↑ ↔ NIFTY ↓</button><button onClick={()=>{setHypX("gold");setHypY("nifty50");setHypSign("opposite")}}>Gold ↑ ↔ NIFTY ↓</button></div>
+      <div className="hypothesisScore">
+        <div><small>HYPOTHESES TESTED</small><strong>{score.tested}</strong></div>
+        <div><small>SUPPORTED</small><strong>{score.supported}</strong></div>
+        <div><small>CHALLENGED</small><strong>{score.challenged}</strong></div>
+        <div><small>LEARNING RULE</small><span>Being wrong is useful if you can explain why.</span></div>
+      </div>
+      {journal.length>0&&<div className="journalBox">
+        <div className="journalHead"><div><small>YOUR HYPOTHESIS JOURNAL</small><h3>Ideas you tested on this device</h3></div><button onClick={clearJournal}>Clear journal</button></div>
+        <div className="journalList">{journal.slice(0,8).map((j:any)=><article key={j.id}>
+          <div><span className={j.matched?"journalGood":"journalBad"}>{j.matched?"supported":"challenged"}</span><time>{new Date(j.createdAt).toLocaleDateString("en-IN")}</time></div>
+          <h4>{j.x} {j.sign==="same"?"moves with":"moves opposite to"} {j.y}</h4>
+          <p>Correlation {j.r.toFixed(3)} · R² {j.fit?.r2?.toFixed(3)??"—"} · {j.count} observations</p>
+        </article>)}</div>
+      </div>
     </section>
 
     <section className="economySection eventReplay">
