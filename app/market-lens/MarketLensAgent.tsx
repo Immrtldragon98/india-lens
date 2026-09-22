@@ -16,14 +16,46 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
   const [asking,setAsking]=useState(false);
 
   useEffect(()=>{
-    const count=Number(localStorage.getItem("marketLensAnalyses")||0);
-    setAnalyses(count);
-    const saved=(localStorage.getItem("marketLensLevel") as Level|null);
-    if(saved)setLevel(saved);
-    else setLevel(count>=10?"analyst":count>=4?"learner":"starter");
+    const applyGlobal=(incoming?:any)=>{
+      const count=Number(localStorage.getItem("marketLensAnalyses")||0);setAnalyses(count);
+      try{
+        const raw=localStorage.getItem("indiaLensLearningProfile");
+        const p=incoming||(raw?JSON.parse(raw):null);
+        if(p?.level==="deep")setLevel("analyst");
+        else if(p?.level==="learner")setLevel("learner");
+        else if(p?.level==="simple")setLevel("starter");
+        else setLevel(count>=10?"analyst":count>=4?"learner":"starter");
+      }catch{setLevel(count>=10?"analyst":count>=4?"learner":"starter")}
+    };
+    const onChange=(e:any)=>applyGlobal(e.detail);
+    applyGlobal();
+    window.addEventListener("india-lens-learning-change",onChange);
+    return()=>window.removeEventListener("india-lens-learning-change",onChange);
   },[]);
 
-  function changeLevel(next:Level){setLevel(next);localStorage.setItem("marketLensLevel",next)}
+  function updateLearning(domains:string[],amount=5){
+    try{
+      const raw=localStorage.getItem("indiaLensLearningProfile");
+      const base=raw?JSON.parse(raw):{level:"simple",auto:true,interactions:0,domains:{macro:10,markets:10,companies:10,fundamentals:5,technical:0,statistics:0,bonds:0,currency:5}};
+      const next={...base,interactions:(base.interactions||0)+1,domains:{...base.domains}};
+      for(const d of domains)next.domains[d]=Math.min(100,(next.domains[d]||0)+amount);
+      const avg=Object.values(next.domains).reduce((a:any,b:any)=>a+Number(b),0)/Object.values(next.domains).length;
+      if(next.auto)next.level=next.interactions>=20&&avg>=45?"deep":next.interactions>=6&&avg>=20?"learner":"simple";
+      localStorage.setItem("indiaLensLearningProfile",JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent("india-lens-learning-change",{detail:next}));
+    }catch{}
+  }
+
+  function changeLevel(next:Level){
+    setLevel(next);
+    try{
+      const raw=localStorage.getItem("indiaLensLearningProfile");
+      const p=raw?JSON.parse(raw):{level:"simple",auto:true,interactions:0,domains:{}};
+      p.level=next==="analyst"?"deep":next==="learner"?"learner":"simple";p.auto=false;
+      localStorage.setItem("indiaLensLearningProfile",JSON.stringify(p));
+      window.dispatchEvent(new CustomEvent("india-lens-learning-change",{detail:p}));
+    }catch{}
+  }
 
   async function run(){
     setLoading(true);setError("");setData(null);setAnswer("");
@@ -33,9 +65,7 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
       const j=await r.json();if(!r.ok)throw new Error(j.error||"Analysis failed");
       setData(j);
       const next=analyses+1;setAnalyses(next);localStorage.setItem("marketLensAnalyses",String(next));
-      if(!localStorage.getItem("marketLensLevel")){
-        setLevel(next>=10?"analyst":next>=4?"learner":"starter");
-      }
+      updateLearning(["companies","fundamentals","technical","markets"],6);
     }catch(e:any){setError(e?.message||"Analysis failed")}finally{setLoading(false)}
   }
 
@@ -45,7 +75,7 @@ export default function MarketLensAgent({companies}:{companies:Company[]}){
     try{
       const compact={company:data.company,predictionExplanation:data.predictionExplanation,fundamental:data.fundamental,metrics:data.metrics,technical:data.technical,scenario:data.scenario,assumptions:data.assumptions};
       const r=await fetch("/api/market-lens/ask",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question:text,analysis:compact,level})});
-      const j=await r.json();if(!r.ok)throw new Error(j.error||"Tutor failed");setAnswer(j.answer);
+      const j=await r.json();if(!r.ok)throw new Error(j.error||"Tutor failed");setAnswer(j.answer);updateLearning(["fundamentals","companies"],3);
     }catch(e:any){setAnswer(e?.message||"Tutor unavailable")}finally{setAsking(false)}
   }
 
