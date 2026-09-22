@@ -1,3 +1,4 @@
+import {getNseUniverseStats} from "./upstox";
 type WbIndicator={code:string;name:string;plain:string};
 const wb:WbIndicator[]=[
   {code:"NY.GDP.MKTP.KD.ZG",name:"GDP growth",plain:"How fast India's total economic output is growing."},
@@ -31,16 +32,23 @@ async function amfiSnapshot(){
 }
 
 export async function getFreeDataHub(){
-  const [worldBank,amfi]=await Promise.all([Promise.all(wb.map(worldBankIndicator)),amfiSnapshot()]);
+  const [worldBank,amfi,nseUniverse]=await Promise.all([Promise.all(wb.map(worldBankIndicator)),amfiSnapshot(),getNseUniverseStats()]);
   return {
     generatedAt:new Date().toISOString(),
-    worldBank,amfi,
+    worldBank,amfi,nseUniverse,
+    officialSources:[
+      {name:"NSE All Reports",area:"Bhavcopy, volatility, delivery, PE, 52-week highs/lows, derivatives and debt reports",url:"https://www.nseindia.com/all-reports",status:"reference"},
+      {name:"MoSPI / e-Sankhyiki",area:"GDP, CPI, industrial and statistical releases",url:"https://esankhyiki.mospi.gov.in/",status:"reference"},
+      {name:"Open Government Data India",area:"Government datasets and catalog APIs including MoSPI resources",url:"https://www.data.gov.in/",status:"reference"},
+      {name:"RBI DBIE",area:"Rates, FX, reserves, banking, money and government securities",url:"https://data.rbi.org.in/",status:"reference"},
+      {name:"SEBI Statistics",area:"Corporate bonds, market regulation and securities statistics",url:"https://www.sebi.gov.in/statistics.html",status:"reference"}
+    ],
     providers:[
       {name:"RBI DBIE",area:"Rates, banking, FX, reserves, bonds",status:"active",cost:"Free official"},
-      {name:"MoSPI / data.gov.in",area:"GDP, CPI, industry, labour, public datasets",status:"planned",cost:"Free official"},
+      {name:"MoSPI / data.gov.in",area:"GDP, CPI, industry, labour, public datasets",status:"reference",cost:"Free official"},
       {name:"World Bank",area:"India vs world structural indicators",status:"active",cost:"Free, no key"},
       {name:"AMFI",area:"Indian mutual fund NAV universe",status:"active",cost:"Free official"},
-      {name:"NSE",area:"Official EOD, indices, derivatives, debt reports",status:"planned",cost:"Free reports"},
+      {name:"NSE",area:"Official EOD, indices, derivatives, debt reports",status:"reference",cost:"Free reports"},
       {name:"SEBI",area:"Regulation, corporate bonds, market statistics",status:"planned",cost:"Free official"},
       {name:"Upstox Analytics",area:"Quotes, history, fundamentals, IPOs, market analytics",status:process.env.UPSTOX_ANALYTICS_TOKEN?"active":"ready",cost:"Free token"},
       {name:"CoinGecko",area:"Crypto market context",status:process.env.COINGECKO_API_KEY?"active":"ready",cost:"Free demo key"},
