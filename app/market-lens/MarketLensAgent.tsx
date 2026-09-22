@@ -4,14 +4,14 @@ import {useEffect,useMemo,useState} from "react";
 type Company={symbol:string;name:string;sector:string;industry:string};
 type Level="starter"|"learner"|"analyst";
 
-export default function MarketLensAgent({companies,initialSymbol}:{companies:Company[];initialSymbol?:string}){
+export default function MarketLensAgent({companies,initialSymbol,initialQuestion}:{companies:Company[];initialSymbol?:string;initialQuestion?:string}){
   const [symbol,setSymbol]=useState(initialSymbol||"RELIANCE");
   const [level,setLevel]=useState<Level>("starter");
   const [analyses,setAnalyses]=useState(0);
   const [data,setData]=useState<any>(null);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
-  const [question,setQuestion]=useState("");
+  const [question,setQuestion]=useState(initialQuestion||"");
   const [answer,setAnswer]=useState("");
   const [asking,setAsking]=useState(false);
 
