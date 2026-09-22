@@ -78,6 +78,9 @@ export default function EconomyDashboard(){
   const [hypResult,setHypResult]=useState<any>(null);
   const [journal,setJournal]=useState<any[]>([]);
   const [score,setScore]=useState({tested:0,supported:0,challenged:0});
+  const [wolfram,setWolfram]=useState<any>(null);
+  const [wolframLoading,setWolframLoading]=useState(false);
+  const [wolframError,setWolframError]=useState("");
 
   async function load(){
     setError("");
@@ -160,6 +163,18 @@ export default function EconomyDashboard(){
     setScore({tested:next.length,supported,challenged:next.length-supported});
   }
 
+  async function verifyWithWolfram(){
+    setWolframLoading(true);setWolframError("");setWolfram(null);
+    try{
+      const payload={x:returnPairs.map(r=>r.x),y:returnPairs.map(r=>r.y)};
+      const r=await fetch("/api/wolfram/stats",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+      const j=await r.json();
+      if(!r.ok)throw new Error(j.error||"Wolfram verification failed");
+      setWolfram(j);updateLearning(["statistics"],6);
+    }catch(e:any){setWolframError(e?.message||"Wolfram verification failed")}
+    finally{setWolframLoading(false)}
+  }
+
   function clearJournal(){
     setJournal([]);setScore({tested:0,supported:0,challenged:0});
     localStorage.removeItem("indiaLensHypothesisJournal");
@@ -199,6 +214,18 @@ export default function EconomyDashboard(){
       <div className="economyTitle"><p>04 / STATISTICS LAB</p><h2>Test relationships instead of guessing.</h2><span>Daily returns are used for correlation and regression so unrelated price levels do not fool the analysis.</span></div>
       <div className="statControls"><label>X variable<select value={x} onChange={e=>setX(e.target.value)}>{data?.series.map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</select></label><label>Y variable<select value={y} onChange={e=>setY(e.target.value)}>{data?.series.map(s=><option key={s.code} value={s.code}>{s.name}</option>)}</select></label></div>
       <div className="statResult"><div><small>RETURN CORRELATION</small><strong>{corr==null?"—":corr.toFixed(3)}</strong><span>{corrText}</span></div><div><small>REGRESSION SLOPE</small><strong>{reg?reg.slope.toFixed(3):"—"}</strong><span>Estimated Y move for a 1-unit X move</span></div><div><small>R²</small><strong>{reg?reg.r2.toFixed(3):"—"}</strong><span>How much variation this simple line explains</span></div></div>
+      <div className="wolframVerify">
+        <div><small>EXTERNAL MATH CHECK</small><h3>Verify this relationship with Wolfram</h3><p>India Lens calculates locally first. Wolfram Cloud MCP independently recomputes correlation, regression and significance from the same matched daily returns.</p></div>
+        <button onClick={verifyWithWolfram} disabled={wolframLoading||returnPairs.length<5}>{wolframLoading?"Checking…":"Verify with Wolfram →"}</button>
+      </div>
+      {wolframError&&<div className="wolframError">{wolframError}</div>}
+      {wolfram&&<div className="wolframResult">
+        <div><small>WOLFRAM CORRELATION</small><strong>{Number(wolfram.correlation).toFixed(3)}</strong></div>
+        <div><small>WOLFRAM SLOPE</small><strong>{Number(wolfram.slope).toFixed(3)}</strong></div>
+        <div><small>WOLFRAM R²</small><strong>{Number(wolfram.r2).toFixed(3)}</strong></div>
+        <div><small>P-VALUE</small><strong>{Number.isFinite(Number(wolfram.pValue))?Number(wolfram.pValue).toPrecision(3):"—"}</strong></div>
+        <p>{Math.abs((Number(wolfram.correlation)||0)-(corr||0))<0.002?"✓ Wolfram independently matches the India Lens correlation.":"The external result differs from the local calculation; treat this as a signal to inspect the data alignment."} <span>{wolfram.count} matched observations · {wolfram.provider}</span></p>
+      </div>}
       <div className="chartGrid">
         <article><div className="chartTitle"><b>Scatter plot</b><span>{xs?.name} return vs {ys?.name} return</span></div><Scatter rows={returnPairs}/></article>
         <article><div className="chartTitle"><b>Rolling 30-day correlation</b><span>Watch the relationship change across regimes</span></div><RollingChart points={rolling}/></article>
